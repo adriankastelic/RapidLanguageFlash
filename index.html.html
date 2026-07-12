@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Verb Flashcards</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f6f5f2;
@@ -119,6 +120,17 @@
   .sub { font-size: 15px; color: var(--text-secondary); margin: 0; }
   .sentence { font-size: 17px; font-weight: 500; line-height: 1.5; margin: 4px 0 0; }
   .sentence-pinyin { font-size: 13px; color: var(--text-secondary); font-style: italic; margin: 2px 0 0; }
+  .cjk { font-family: 'Noto Sans SC', sans-serif; }
+  .radical-row {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .radical-row:last-child { border-bottom: none; }
+  .radical-char { font-size: 22px; font-weight: 600; color: var(--accent); min-width: 32px; }
+  .radical-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 
   .conj-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .conj-table td { padding: 5px 4px; }
@@ -197,6 +209,7 @@ const pronouns = {
 const decks = {
 es: {
   title: "100 Spanish Verbs", frontLabel: "Verbo", hasConj: true, hasPinyin: false,
+  extraLabel: "Conjugation", extraMode: "conj",
   verbs: [
 ["ser","to be","Mi hermana es muy inteligente y generosa.","My sister is very intelligent and generous.",["soy","eres","es","somos","sois","son"]],
 ["estar","to be (state/location)","El café está frío sobre la mesa de madera.","The coffee is cold on the wooden table.",["estoy","estás","está","estamos","estáis","están"]],
@@ -302,6 +315,7 @@ es: {
 },
 sl: {
   title: "100 Slovenian Verbs", frontLabel: "Glagol", hasConj: true, hasPinyin: false,
+  extraLabel: "Conjugation", extraMode: "conj",
   verbs: [
 ["biti","to be","Ana je zelo prijazna in pametna.","Ana is very kind and smart.",["sem","si","je","smo","ste","so"]],
 ["imeti","to have","Imamo psa in mačko doma.","We have a dog and a cat at home.",["imam","imaš","ima","imamo","imate","imajo"]],
@@ -407,6 +421,7 @@ sl: {
 },
 zh: {
   title: "100 Chinese Verbs", frontLabel: "动词", hasConj: false, hasPinyin: true,
+  extraLabel: "Radicals", extraMode: "radicals",
   verbs: [
 ["是","shì","to be","她是一个聪明的学生。","Tā shì yí gè cōngmíng de xuéshēng.","She is a smart student."],
 ["有","yǒu","to have","我们有一只小狗和一只猫。","Wǒmen yǒu yì zhī xiǎo gǒu hé yì zhī māo.","We have a small dog and a cat."],
@@ -512,7 +527,104 @@ zh: {
 }
 };
 
+const charInfo = {
+"是":{p:"shì",c:"日 (sun) + a variant of 正 (proper, correct)",n:"Traditionally read as \"day\" over \"upright/correct\" — what is proper under the sun. Suggests correctness, hence \"to be, is.\""},
+"有":{p:"yǒu",c:"𠂇 (hand) over 月 (meat/flesh)",n:"A hand holding a piece of meat — possessing something. Gives the meaning \"to have.\""},
+"做":{p:"zuò",c:"亻(person) + 故 (old + action)",n:"The person radical 亻 shows this verb describes something a person actively does — \"to do, make.\""},
+"去":{p:"qù",c:"土-like top + 厶 (private/self)",n:"An old pictograph of a person leaving a dwelling. Came to mean moving away — \"to go.\""},
+"来":{p:"lái",c:"pictograph of a wheat stalk",n:"Originally drew a stalk of grain; the character was later borrowed purely for its sound to mean \"to come.\""},
+"看":{p:"kàn",c:"手 (hand, shown at top) over 目 (eye)",n:"A hand shading the eyes — the classic gesture for looking into the distance. \"To see/look.\""},
+"听":{p:"tīng",c:"口 (mouth) + 斤 (axe, sound component)",n:"The simplified form keeps the mouth radical 口; the full traditional form 聽 uses 耳 (ear) and 心 (heart) — listening with ear and heart."},
+"说":{p:"shuō",c:"讠(speech radical) + 兑 (sound component)",n:"讠 is the compressed form of 言 \"speech\" — any character with this radical relates to talking. \"To speak.\""},
+"吃":{p:"chī",c:"口 (mouth) + 乞 (sound component)",n:"The mouth radical 口 marks this as an action done with the mouth — \"to eat.\""},
+"喝":{p:"hē",c:"口 (mouth) + 曷 (sound component, \"what/why\")",n:"Again the mouth radical 口 signals the action of the mouth — \"to drink.\""},
+"睡":{p:"shuì",c:"目 (eye) + 垂 (to droop, hang down)",n:"Eyes (目) drooping shut (垂) — a vivid picture of falling asleep."},
+"走":{p:"zǒu",c:"a running figure over 止 (foot)",n:"止 is a stylized foot, appearing in many movement-related characters. Combined with the upper figure, it shows a person in motion — \"to walk.\""},
+"跑":{p:"pǎo",c:"足 (foot) + 包 (sound component, \"wrap\")",n:"The foot radical 足 (left side) marks any leg/foot-related action. \"To run.\""},
+"玩":{p:"wán",c:"王 (a compressed form of 玉, jade) + 元 (sound component)",n:"The jade radical 王/玉 originally pointed to handling fine jade ornaments for amusement — \"to play.\""},
+"买":{p:"mǎi",c:"a net-like top over 贝 (shell, ancient money)",n:"贝 (cowrie shell) was ancient currency, so it appears in many money-related characters. \"To buy.\""},
+"卖":{p:"mài",c:"a mark on top of 买 (buy)",n:"Built on top of \"buy\" (买) — traditionally \"goods going out\" the opposite transaction. \"To sell.\""},
+"付":{p:"fù",c:"亻(person) + 寸 (hand/a small unit)",n:"寸 here evokes a hand measuring something out — a person handing something over. \"To pay.\""},
+"需":{p:"xū",c:"雨 (rain) + 而 (sound component)",n:"雨 \"rain\" sits on top — the character originally related to waiting out rain, later broadened to \"to need, require.\""},
+"找":{p:"zhǎo",c:"扌(hand) + 戈 (spear, sound component)",n:"扌 is the compressed form of 手 \"hand\" — this radical marks actions done by hand. \"To look for.\""},
+"到":{p:"dào",c:"至 (to arrive) + 刂 (knife, sound component)",n:"至 is itself a picture of an arrow hitting the ground — arrival. \"To arrive.\""},
+"丢":{p:"diū",c:"去 (go) with an added stroke on top",n:"Built directly on 去 \"to go/leave\" — something going away or dropping out of your hands. \"To lose (an object).\""},
+"开":{p:"kāi",c:"simplified from a door 門 with two hands 廾 pushing it",n:"The full traditional form shows two hands opening a gate. \"To open.\""},
+"结":{p:"jié",c:"纟(silk/thread) + 吉 (lucky, sound component)",n:"纟 marks characters related to thread and tying. Tying a knot came to mean \"to conclude, tie up.\""},
+"继":{p:"jì",c:"纟(silk/thread) + a joined-thread component",n:"The thread radical 纟 pictures an unbroken strand — extended to \"to continue.\""},
+"留":{p:"liú",c:"田 (field) + a phonetic top component",n:"田 \"field\" suggests something staying put on the land — \"to remain, stay.\""},
+"打":{p:"dǎ",c:"扌(hand) + 丁 (nail, sound component)",n:"扌\"hand\" shows this is an action performed with the hand — \"to hit,\" and by extension \"to do.\""},
+"关":{p:"guān",c:"simplified from a door bolt threaded shut",n:"The traditional form 關 pictures a bar drawn across a gate. \"To close.\""},
+"帮":{p:"bāng",c:"邦 (region/nation, sound+meaning) over 巾 (cloth)",n:"Originally related to supporting a region; the meaning shifted over time to \"to help, assist.\""},
+"懂":{p:"dǒng",c:"忄(heart) + 董 (sound component)",n:"忄 is the compressed \"heart\" radical seen in many characters about feelings and thought. \"To understand.\""},
+"学":{p:"xué",c:"a roof 冖 over hands and a child 子",n:"Pictures a child (子) under a roof (冖) being guided by hands — learning at home. \"To study.\""},
+"认":{p:"rèn",c:"讠(speech) + a sound component",n:"讠 \"speech\" shows this relates to acknowledging or naming something through words — \"to recognize.\""},
+"知":{p:"zhī",c:"矢 (arrow) + 口 (mouth)",n:"An arrow (矢) that hits its mark, paired with the mouth (口) for speaking precisely — knowledge, \"to know.\""},
+"叫":{p:"jiào",c:"口 (mouth) + a sound component",n:"口 \"mouth\" marks a vocal action — \"to call out, shout, be named.\""},
+"等":{p:"děng",c:"竹 (bamboo) + 寺 (temple/office)",n:"Bamboo strips (竹) were used for ranked, orderly records — extended to mean \"equal, rank,\" and \"to wait one's turn.\""},
+"希":{p:"xī",c:"爻 (a crossed pattern) + 巾 (cloth)",n:"Originally described finely woven, rare cloth — rarity extended to \"hope for\" something uncommon."},
+"相":{p:"xiāng",c:"木 (tree/wood) + 目 (eye)",n:"Originally \"to look closely at a tree\" — extended to mutual observation, and here, \"to believe (相信).\""},
+"感":{p:"gǎn",c:"咸 (sound component) over 心 (heart)",n:"心 \"heart\" at the bottom marks this as an emotion-related character — \"to feel.\""},
+"爱":{p:"ài",c:"simplified from a form that held 心 (heart) at its center",n:"The traditional character 愛 has the heart radical 心 in the middle — feeling at the core of love. \"To love.\""},
+"恨":{p:"hèn",c:"忄(heart) + 艮 (sound component, \"stubborn\")",n:"忄 \"heart\" marks an emotional state — here, a stubborn, lingering feeling. \"To hate.\""},
+"笑":{p:"xiào",c:"竹 (bamboo, bending) + 夭 (bent, young)",n:"Bamboo bending in the wind pictured alongside a bent figure — bending with laughter. \"To laugh.\""},
+"哭":{p:"kū",c:"口口 (two mouths) over 犬 (dog)",n:"Two mouths wailing loudly; the lower component is thought to reinforce the sound of crying. \"To cry.\""},
+"唱":{p:"chàng",c:"口 (mouth) + 昌 (sound component, \"flourishing\")",n:"口 \"mouth\" shows this is a vocal action — \"to sing.\""},
+"跳":{p:"tiào",c:"足 (foot) + 兆 (sound component)",n:"足 \"foot\" marks leg movement — \"to jump,\" and by extension \"to dance.\""},
+"坐":{p:"zuò",c:"two 人 (people) over 土 (earth)",n:"A simple picture of two people seated on the ground — \"to sit.\""},
+"站":{p:"zhàn",c:"立 (to stand) + 占 (sound component)",n:"立 already means \"to stand\" on its own, reinforcing the meaning directly. \"To stand.\""},
+"躺":{p:"tǎng",c:"身 (body) + 尚 (sound component, \"still, yet\")",n:"身 \"body\" marks a character about physical posture — \"to lie down.\""},
+"起":{p:"qǐ",c:"走 (walk) + 己 (self, sound component)",n:"走 relates to movement — rising up and setting off. \"To get up.\""},
+"穿":{p:"chuān",c:"穴 (cave/hole) + 牙 (tooth)",n:"Pictures something piercing through an opening — extended to \"putting clothes through\" the body, i.e. \"to wear.\""},
+"洗":{p:"xǐ",c:"氵(water) + 先 (sound component)",n:"氵 is the compressed \"water\" radical — any character with it usually relates to liquid. \"To wash.\""},
+"散":{p:"sàn",c:"攵(action/strike) + a scattering component",n:"攵 marks an active motion; here, things being scattered or dispersed — \"to scatter,\" hence a leisurely, unhurried walk."},
+"旅":{p:"lǚ",c:"方 (banner/direction) + a group-of-people component",n:"Originally pictured people gathered under a banner, traveling together as a group. \"To travel.\""},
+"离":{p:"lí",c:"originally a pictograph of a mythical bird",n:"The bird image was borrowed purely for its sound to mean \"to separate, leave.\""},
+"回":{p:"huí",c:"a box within a box, spiral-like shape",n:"The nested-square shape suggests turning back on a path — \"to return.\""},
+"忘":{p:"wàng",c:"亡 (to lose, disappear) over 心 (heart)",n:"心 \"heart\" at the bottom marks a mental state — something disappearing from the heart/mind. \"To forget.\""},
+"记":{p:"jì",c:"讠(speech) + 己 (self, sound component)",n:"讠 \"speech\" shows this relates to putting something into words to keep track of it — \"to remember, record.\""},
+"解":{p:"jiě",c:"角 (horn) + 刀 (knife) + 牛 (ox)",n:"A knife separating an ox's horn — dissecting something to understand it. \"To explain, untie.\""},
+"问":{p:"wèn",c:"口 (mouth) inside 门 (gate/door)",n:"口 \"mouth\" shows this is a spoken action — asking, literally \"mouth at the gate.\" \"To ask.\""},
+"告":{p:"gào",c:"牛 (ox) over 口 (mouth)",n:"Thought to depict an ox horn used to sound an announcement, paired with the mouth for speaking. \"To tell, announce.\""},
+"寄":{p:"jì",c:"宀(roof/house) + 奇 (sound component, \"strange\")",n:"宀 \"roof\" marks a household-related character — sending something from one house to another. \"To send.\""},
+"收":{p:"shōu",c:"丩 (twisted thread) + 攵 (action/strike)",n:"攵 marks an active motion — here, the act of gathering something in. \"To receive, collect.\""},
+"接":{p:"jiē",c:"扌(hand) + 妾 (sound component)",n:"扌 \"hand\" shows a physical action — reaching out to receive or connect. \"To receive, connect.\""},
+"拒":{p:"jù",c:"扌(hand) + 巨 (sound component, \"giant\")",n:"扌 \"hand\" marks a physical action — pushing something away. \"To refuse.\""},
+"允":{p:"yǔn",c:"a kneeling figure with 厶 (private) on top",n:"Originally suggested sincerity and truthfulness, which extended to granting permission. \"To allow.\""},
+"禁":{p:"jìn",c:"林 (forest, two trees) over 示 (altar/spirit)",n:"示 marks characters related to ritual and the sacred — a sacred grove forbidden to enter. \"To forbid.\""},
+"答":{p:"dá",c:"竹 (bamboo) + 合 (to combine, match)",n:"Bamboo strips (竹) were used for written replies in ancient times — \"to answer.\""},
+"创":{p:"chuàng",c:"仓 (sound component, \"warehouse\") + 刂 (knife)",n:"刂 \"knife\" suggests carving something new into existence — \"to create.\""},
+"建":{p:"jiàn",c:"廴 (a long stride) + 聿 (a writing brush)",n:"Pictures laying out plans with a brush while walking the site — \"to build, establish.\""},
+"破":{p:"pò",c:"石 (stone) + 皮 (skin/surface, sound component)",n:"石 \"stone\" marks characters about hard, breakable material — \"to break, destroy.\""},
+"修":{p:"xiū",c:"亻(person) + 攸 (sound component) + 彡 (decorative strokes)",n:"亻 \"person\" plus decorative strokes 彡 suggest a person tidying or refining something — \"to repair, cultivate.\""},
+"改":{p:"gǎi",c:"己 (self) + 攵 (action/strike)",n:"攵 marks an active motion — making a change happen to oneself or something. \"To change.\""},
+"照":{p:"zhào",c:"灬(fire, four dots) + 昭 (bright, itself containing 日 sun)",n:"灬 \"fire\" at the bottom marks characters about light and illumination — \"to shine on,\" and by extension \"to look after (照顾).\""},
+"保":{p:"bǎo",c:"亻(person) + a component originally showing a child on someone's back",n:"亻 \"person\" plus the carried-child image — a person looking after someone. \"To protect.\""},
+"战":{p:"zhàn",c:"占 (sound component) + 戈 (spear/weapon)",n:"戈 \"weapon\" directly marks this as combat-related — \"to fight, battle.\""},
+"赢":{p:"yíng",c:"combines 亡, 口, 月, 贝 (shell/money), and 凡",n:"The money radical 贝 sits inside this complex character, tying victory to gain — \"to win.\""},
+"输":{p:"shū",c:"车 (cart/vehicle) + 俞 (sound component, \"to transport\")",n:"车 \"cart\" marks characters about transport — goods being carried away, extended to \"to lose (a game).\""},
+"比":{p:"bǐ",c:"two 匕 (dagger-spoon shapes) side by side",n:"Two identical shapes placed next to each other for comparison — \"to compare, compete.\""},
+"合":{p:"hé",c:"a lid over a container",n:"Pictures a lid fitting neatly over a container — things coming together. \"To combine, cooperate.\""},
+"领":{p:"lǐng",c:"令 (command, sound component) + 页 (head/page)",n:"页 relates to the head and neck — as in leading someone by the collar. \"To lead.\""},
+"跟":{p:"gēn",c:"足 (foot) + 艮 (sound component)",n:"足 \"foot\" marks this as a movement-related action — following on foot. \"To follow.\""},
+"碰":{p:"pèng",c:"石 (stone) + 并 (sound component, \"together\")",n:"石 \"stone\" marks a hard, physical collision — \"to bump into, run into by chance.\""},
+"拜":{p:"bài",c:"a hand component + 下 (down)",n:"Pictures hands lowering in a gesture of respect — \"to pay respects, visit.\""},
+"庆":{p:"qìng",c:"traditionally 心 (heart) + 夂 (walk) under 广 (shelter)",n:"心 \"heart\" in the full form points to a joyful feeling — \"to celebrate.\""},
+"出":{p:"chū",c:"a foot 止 emerging from an enclosure",n:"Pictures something stepping out of a confined space — \"to go out,\" and by extension \"to be born.\""},
+"死":{p:"sǐ",c:"歹 (bad/bone fragment, death radical) + 匕 (a kneeling figure)",n:"歹 is the dedicated \"death/decay\" radical, appearing in words about death and illness. \"To die.\""},
+"长":{p:"zhǎng",c:"pictograph of long hair on an elder with a staff",n:"An image of length and age — used both for \"long\" and, as a verb, \"to grow.\""},
+"想":{p:"xiǎng",c:"相 (mutual, itself 木 wood + 目 eye) over 心 (heart)",n:"心 \"heart\" at the bottom marks this as a character of mental activity — \"to think.\""},
+"决":{p:"jué",c:"冫(ice/water) + 夬 (sound component, \"to divide\")",n:"冫 relates to water — an old sense of \"breaching a dyke\" extended to \"resolving, deciding.\""},
+"工":{p:"gōng",c:"pictograph of a carpenter's square",n:"A simple tool shape representing skilled labor and craftsmanship — \"work.\""},
+"拿":{p:"ná",c:"合 (to combine) over 手 (hand)",n:"手 \"hand\" at the bottom directly shows the action of grasping — \"to take, hold.\""},
+"给":{p:"gěi",c:"纟(silk/thread) + 合 (sound component, \"combine\")",n:"纟 \"thread\" originally related to supplying silk goods — broadened to \"to give, supply.\""},
+"飞":{p:"fēi",c:"simplified pictograph of a bird's wings in motion",n:"The shape traces a bird spreading its wings — \"to fly.\""},
+"游":{p:"yóu",c:"氵(water) + 斿 (a flowing banner, sound+meaning)",n:"氵 \"water\" marks this as a liquid-related action — moving through water, or more broadly wandering. \"To swim.\""},
+"生":{p:"shēng",c:"pictograph of a plant sprouting from soil",n:"A stem pushing up out of the ground — new growth. \"To be born, to live, to grow.\""}
+};
+
 let currentLang = 'es';
+
 let order = decks[currentLang].verbs.map((_, i) => i);
 let idx = 0;
 let mode = 'front'; // 'front' | 'back' | 'conj'
@@ -529,18 +641,18 @@ function render() {
   const v = deck.verbs[order[idx]];
   counterEl.textContent = (idx + 1) + ' / ' + deck.verbs.length;
 
-  conjBtn.classList.toggle('hidden', !deck.hasConj);
+  conjBtn.textContent = deck.extraLabel;
   flipBtn.classList.toggle('active-mode', mode === 'front');
   transBtn.classList.toggle('active-mode', mode === 'back');
-  conjBtn.classList.toggle('active-mode', mode === 'conj');
+  conjBtn.classList.toggle('active-mode', mode === 'extra');
 
   if (mode === 'front') {
     if (deck.hasPinyin) {
       cardEl.innerHTML =
         '<p class="label">' + deck.frontLabel + '</p>' +
-        '<p class="word">' + v[0] + '</p>' +
+        '<p class="word cjk">' + v[0] + '</p>' +
         '<p class="pinyin">' + v[1] + '</p>' +
-        '<p class="sentence">' + v[3] + '</p>' +
+        '<p class="sentence cjk">' + v[3] + '</p>' +
         '<p class="sentence-pinyin">' + v[4] + '</p>';
     } else {
       cardEl.innerHTML =
@@ -561,7 +673,7 @@ function render() {
         '<p class="sub">' + v[1] + '</p>' +
         '<p class="sentence">' + v[3] + '</p>';
     }
-  } else {
+  } else if (deck.extraMode === 'conj') {
     const pn = pronouns[currentLang];
     const forms = v[4];
     let rows = '';
@@ -571,6 +683,22 @@ function render() {
     cardEl.innerHTML =
       '<p class="label">' + v[0] + ' — present tense</p>' +
       '<table class="conj-table">' + rows + '</table>';
+  } else if (deck.extraMode === 'radicals') {
+    const mainChar = v[0].charAt(0);
+    const info = charInfo[mainChar];
+    if (info) {
+      cardEl.innerHTML =
+        '<p class="label">Character breakdown</p>' +
+        '<div class="radical-row">' +
+          '<span class="radical-char cjk">' + mainChar + '</span>' +
+          '<span class="radical-desc"><strong>' + info.p + '</strong> — ' + info.c + '</span>' +
+        '</div>' +
+        '<p class="sentence" style="margin-top:10px;font-size:14px;font-weight:400;">' + info.n + '</p>';
+    } else {
+      cardEl.innerHTML =
+        '<p class="label">Character breakdown</p>' +
+        '<p class="sentence" style="font-size:14px;font-weight:400;">No breakdown available for this character yet.</p>';
+    }
   }
 }
 
@@ -612,17 +740,12 @@ function shuffle() {
 }
 
 cardEl.addEventListener('click', () => {
-  const deck = decks[currentLang];
-  if (deck.hasConj) {
-    mode = mode === 'front' ? 'back' : mode === 'back' ? 'conj' : 'front';
-  } else {
-    mode = mode === 'front' ? 'back' : 'front';
-  }
+  mode = mode === 'front' ? 'back' : mode === 'back' ? 'extra' : 'front';
   render();
 });
 flipBtn.addEventListener('click', () => { mode = 'front'; render(); });
 transBtn.addEventListener('click', () => { mode = 'back'; render(); });
-conjBtn.addEventListener('click', () => { mode = 'conj'; render(); });
+conjBtn.addEventListener('click', () => { mode = 'extra'; render(); });
 document.getElementById('nextBtn').addEventListener('click', next);
 document.getElementById('prevBtn').addEventListener('click', prev);
 document.getElementById('shuffleBtn').addEventListener('click', shuffle);
