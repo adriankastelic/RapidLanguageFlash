@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verb Flashcards</title>
+<style>
+  :root {
+    --bg: #f6f5f2;
+    --card-bg: #ffffff;
+    --border: #ddd9d0;
+    --text-primary: #1f1e1c;
+    --text-secondary: #6b6a65;
+    --accent: #b5541f;
+    --accent2: #b5541f;
+  }
+  /* Spain: red & gold, from the national flag */
+  body.lang-es { --accent: #AA151B; --accent2: #F1BF00; --border: #f0d9a8; }
+  /* Slovenia: blue, white & red, from the national flag */
+  body.lang-sl { --accent: #0033A0; --accent2: #ED1C24; --border: #b9c9e8; }
+  /* China: red & gold, from the national flag */
+  body.lang-zh { --accent: #DE2910; --accent2: #FFDE00; --border: #f3cf8a; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 48px;
+  }
+  .app { width: 100%; max-width: 420px; }
+  h1 { font-size: 18px; font-weight: 600; text-align: center; margin: 0 0 16px; }
+
+  .lang-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .lang-toggle button {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .lang-toggle button.active { background: var(--accent); color: #fff; }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .toolbar button {
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .toolbar button:active { transform: scale(0.97); }
+
+  .flag-stripe {
+    height: 6px;
+    border-radius: 3px;
+    margin-bottom: 12px;
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .flag-stripe span { flex: 1; }
+  body.lang-es .flag-stripe span:nth-child(1) { background: #AA151B; }
+  body.lang-es .flag-stripe span:nth-child(2) { background: #F1BF00; flex: 2; }
+  body.lang-es .flag-stripe span:nth-child(3) { background: #AA151B; }
+  body.lang-sl .flag-stripe span:nth-child(1) { background: #ffffff; }
+  body.lang-sl .flag-stripe span:nth-child(2) { background: #0033A0; }
+  body.lang-sl .flag-stripe span:nth-child(3) { background: #ED1C24; }
+  body.lang-zh .flag-stripe span:nth-child(1) { background: #DE2910; flex: 3; }
+  body.lang-zh .flag-stripe span:nth-child(2) { background: #FFDE00; }
+  body.lang-zh .flag-stripe span:nth-child(3) { background: #DE2910; flex: 3; }
+
+  .card {
+    position: relative;
+    min-height: 220px;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-top: 4px solid var(--accent);
+    border-radius: 14px;
+    background: var(--card-bg);
+    padding: 24px 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  .word { font-size: 28px; font-weight: 600; margin: 0; color: var(--accent); }
+  .pinyin { font-size: 15px; color: var(--text-secondary); margin: 0; font-style: italic; }
+  .sub { font-size: 15px; color: var(--text-secondary); margin: 0; }
+  .sentence { font-size: 17px; font-weight: 500; line-height: 1.5; margin: 4px 0 0; }
+  .sentence-pinyin { font-size: 13px; color: var(--text-secondary); font-style: italic; margin: 2px 0 0; }
+
+  .conj-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .conj-table td { padding: 5px 4px; }
+  .conj-table td.pronoun { color: var(--text-secondary); width: 40%; }
+  .conj-table td.form { font-weight: 600; }
+
+  .controls { display: flex; gap: 8px; }
+  .controls button {
+    flex: 1;
+    padding: 11px 4px;
+    font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .controls button:active { transform: scale(0.97); }
+  .controls button.active-mode { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .controls button.hidden { display: none; }
+
+  .nav-controls { display: flex; gap: 10px; margin-top: 10px; }
+  .nav-controls button {
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .nav-controls button:active { transform: scale(0.97); }
+
+  .hint { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 14px; }
+</style>
+</head>
+<body class="lang-es">
+<div class="app">
+  <h1 id="title">100 Spanish Verbs</h1>
+
+  <div class="lang-toggle">
+    <button id="btnEs" class="active">Español</button>
+    <button id="btnSl">Slovenščina</button>
+    <button id="btnZh">中文</button>
+  </div>
+
+  <div class="toolbar">
+    <span id="counter">1 / 100</span>
+    <button id="shuffleBtn">Shuffle</button>
+  </div>
+
+  <div class="flag-stripe"><span></span><span></span><span></span></div>
+  <div class="card" id="card"></div>
+
+  <div class="controls">
+    <button id="flipBtn" class="active-mode">Word / sentence</button>
+    <button id="transBtn">English</button>
+    <button id="conjBtn">Conjugation</button>
+  </div>
+
+  <div class="nav-controls">
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+  </div>
+
+  <p class="hint">Switch between views above.</p>
+</div>
+
+<script>
+const pronouns = {
+  es: ["yo","tú","él / ella","nosotros","vosotros","ellos"],
+  sl: ["jaz","ti","on / ona","mi","vi","oni"]
+};
+
+const decks = {
+es: {
+  title: "100 Spanish Verbs", frontLabel: "Verbo", hasConj: true, hasPinyin: false,
+  verbs: [
+["ser","to be","Mi hermana es muy inteligente y generosa.","My sister is very intelligent and generous.",["soy","eres","es","somos","sois","son"]],
+["estar","to be (state/location)","El café está frío sobre la mesa de madera.","The coffee is cold on the wooden table.",["estoy","estás","está","estamos","estáis","están"]],
+["tener","to have","Tenemos dos perros pequeños y un gato negro.","We have two small dogs and a black cat.",["tengo","tienes","tiene","tenemos","tenéis","tienen"]],
+["hacer","to do/make","Mi abuela hace pan fresco todos los domingos.","My grandmother makes fresh bread every Sunday.",["hago","haces","hace","hacemos","hacéis","hacen"]],
+["poder","to be able to","¿Puedes ayudarme con esta maleta pesada?","Can you help me with this heavy suitcase?",["puedo","puedes","puede","podemos","podéis","pueden"]],
+["decir","to say/tell","El profesor dice que el examen será difícil.","The teacher says that the exam will be difficult.",["digo","dices","dice","decimos","decís","dicen"]],
+["ir","to go","Vamos al mercado antes de que cierre.","We're going to the market before it closes.",["voy","vas","va","vamos","vais","van"]],
+["ver","to see","Desde la montaña se ve el valle entero.","From the mountain you can see the whole valley.",["veo","ves","ve","vemos","veis","ven"]],
+["dar","to give","Mi tío nos da consejos útiles y honestos.","My uncle gives us useful and honest advice.",["doy","das","da","damos","dais","dan"]],
+["saber","to know (facts)","No sé la respuesta correcta a esa pregunta difícil.","I don't know the correct answer to that difficult question.",["sé","sabes","sabe","sabemos","sabéis","saben"]],
+["querer","to want/love","Quiero un vaso de agua fría, por favor.","I want a glass of cold water, please.",["quiero","quieres","quiere","queremos","queréis","quieren"]],
+["llegar","to arrive","El tren llega tarde por la lluvia fuerte.","The train arrives late because of the heavy rain.",["llego","llegas","llega","llegamos","llegáis","llegan"]],
+["pasar","to happen/pass","¿Qué pasa en la calle principal ahora mismo?","What's happening on the main street right now?",["paso","pasas","pasa","pasamos","pasáis","pasan"]],
+["deber","should/must","Debemos terminar el proyecto antes del viernes.","We must finish the project before Friday.",["debo","debes","debe","debemos","debéis","deben"]],
+["poner","to put","Ella pone las flores amarillas en el jarrón azul.","She puts the yellow flowers in the blue vase.",["pongo","pones","pone","ponemos","ponéis","ponen"]],
+["parecer","to seem","Ese plan parece razonable y bien organizado.","That plan seems reasonable and well organized.",["parezco","pareces","parece","parecemos","parecéis","parecen"]],
+["quedar","to remain/stay","Solo queda un pedazo de pastel de chocolate.","Only one piece of chocolate cake remains.",["quedo","quedas","queda","quedamos","quedáis","quedan"]],
+["creer","to believe","Creo que ese actor es muy talentoso.","I believe that actor is very talented.",["creo","crees","cree","creemos","creéis","creen"]],
+["hablar","to speak","Mis padres hablan español e inglés en casa.","My parents speak Spanish and English at home.",["hablo","hablas","habla","hablamos","habláis","hablan"]],
+["llevar","to carry/wear","Ella lleva un abrigo rojo en invierno.","She wears a red coat in winter.",["llevo","llevas","lleva","llevamos","lleváis","llevan"]],
+["dejar","to leave/allow","Mi jefe me deja salir temprano los viernes.","My boss lets me leave early on Fridays.",["dejo","dejas","deja","dejamos","dejáis","dejan"]],
+["seguir","to follow/continue","El perro sigue a su dueño por el parque.","The dog follows its owner through the park.",["sigo","sigues","sigue","seguimos","seguís","siguen"]],
+["encontrar","to find","Encontré las llaves debajo del sofá viejo.","I found the keys under the old sofa.",["encuentro","encuentras","encuentra","encontramos","encontráis","encuentran"]],
+["llamar","to call","Voy a llamar a mi amiga esta noche.","I'm going to call my friend tonight.",["llamo","llamas","llama","llamamos","llamáis","llaman"]],
+["venir","to come","Mis primos vienen de visita en agosto.","My cousins are coming to visit in August.",["vengo","vienes","viene","venimos","venís","vienen"]],
+["pensar","to think","Pienso que la película fue aburrida.","I think the movie was boring.",["pienso","piensas","piensa","pensamos","pensáis","piensan"]],
+["salir","to leave/go out","Salimos temprano para evitar el tráfico pesado.","We leave early to avoid heavy traffic.",["salgo","sales","sale","salimos","salís","salen"]],
+["volver","to return","Vuelvo a casa después del trabajo largo.","I return home after the long workday.",["vuelvo","vuelves","vuelve","volvemos","volvéis","vuelven"]],
+["tomar","to take/drink","Tomamos café caliente cada mañana fría.","We drink hot coffee every cold morning.",["tomo","tomas","toma","tomamos","tomáis","toman"]],
+["conocer","to know (people/places)","Conozco a un músico muy famoso.","I know a very famous musician.",["conozco","conoces","conoce","conocemos","conocéis","conocen"]],
+["vivir","to live","Vivimos en un apartamento pequeño cerca del río.","We live in a small apartment near the river.",["vivo","vives","vive","vivimos","vivís","viven"]],
+["sentir","to feel","Siento una gran alegría al verte.","I feel great joy when I see you.",["siento","sientes","siente","sentimos","sentís","sienten"]],
+["tratar","to try/treat","El médico trata a los pacientes con paciencia.","The doctor treats patients with patience.",["trato","tratas","trata","tratamos","tratáis","tratan"]],
+["mirar","to look at","Los niños miran las estrellas brillantes.","The children look at the bright stars.",["miro","miras","mira","miramos","miráis","miran"]],
+["contar","to count/tell","Mi abuelo cuenta historias divertidas cada noche.","My grandfather tells funny stories every night.",["cuento","cuentas","cuenta","contamos","contáis","cuentan"]],
+["empezar","to begin","La clase empieza a las nueve en punto.","The class begins at nine o'clock sharp.",["empiezo","empiezas","empieza","empezamos","empezáis","empiezan"]],
+["esperar","to wait/hope","Esperamos el autobús bajo la lluvia fría.","We wait for the bus in the cold rain.",["espero","esperas","espera","esperamos","esperáis","esperan"]],
+["buscar","to look for","Busco un libro interesante sobre historia antigua.","I'm looking for an interesting book about ancient history.",["busco","buscas","busca","buscamos","buscáis","buscan"]],
+["existir","to exist","Existen muchas culturas fascinantes en el mundo.","Many fascinating cultures exist in the world.",["existo","existes","existe","existimos","existís","existen"]],
+["entrar","to enter","Entramos al cine oscuro con palomitas frescas.","We enter the dark cinema with fresh popcorn.",["entro","entras","entra","entramos","entráis","entran"]],
+["trabajar","to work","Mi hermano trabaja en una oficina moderna.","My brother works in a modern office.",["trabajo","trabajas","trabaja","trabajamos","trabajáis","trabajan"]],
+["escribir","to write","Escribo una carta larga para mi novia.","I'm writing a long letter to my girlfriend.",["escribo","escribes","escribe","escribimos","escribís","escriben"]],
+["perder","to lose","El equipo local perdió el partido importante.","The local team lost the important game.",["pierdo","pierdes","pierde","perdemos","perdéis","pierden"]],
+["producir","to produce","Esta fábrica produce muebles de calidad.","This factory produces quality furniture.",["produzco","produces","produce","producimos","producís","producen"]],
+["ocurrir","to occur/happen","Ocurrió un accidente extraño en la avenida.","A strange accident occurred on the avenue.",["ocurro","ocurres","ocurre","ocurrimos","ocurrís","ocurren"]],
+["entender","to understand","No entiendo esta pregunta tan complicada.","I don't understand this very complicated question.",["entiendo","entiendes","entiende","entendemos","entendéis","entienden"]],
+["pedir","to ask for/request","Pido una pizza grande para la fiesta.","I'm ordering a large pizza for the party.",["pido","pides","pide","pedimos","pedís","piden"]],
+["recibir","to receive","Recibimos un paquete sorpresa esta tarde.","We received a surprise package this afternoon.",["recibo","recibes","recibe","recibimos","recibís","reciben"]],
+["recordar","to remember","Recuerdo mi primer viaje a la playa.","I remember my first trip to the beach.",["recuerdo","recuerdas","recuerda","recordamos","recordáis","recuerdan"]],
+["terminar","to finish","Terminamos la reunión antes del mediodía.","We finished the meeting before noon.",["termino","terminas","termina","terminamos","termináis","terminan"]],
+["permitir","to allow","El parque no permite mascotas sueltas.","The park doesn't allow loose pets.",["permito","permites","permite","permitimos","permitís","permiten"]],
+["aparecer","to appear","De repente apareció un gato callejero.","Suddenly a stray cat appeared.",["aparezco","apareces","aparece","aparecemos","aparecéis","aparecen"]],
+["conseguir","to get/achieve","Conseguí entradas baratas para el concierto.","I got cheap tickets for the concert.",["consigo","consigues","consigue","conseguimos","conseguís","consiguen"]],
+["comenzar","to begin","El curso comienza la próxima semana.","The course begins next week.",["comienzo","comienzas","comienza","comenzamos","comenzáis","comienzan"]],
+["servir","to serve","El camarero sirve la sopa caliente rápidamente.","The waiter serves the hot soup quickly.",["sirvo","sirves","sirve","servimos","servís","sirven"]],
+["sacar","to take out","Saco la basura todos los martes.","I take out the trash every Tuesday.",["saco","sacas","saca","sacamos","sacáis","sacan"]],
+["necesitar","to need","Necesito una chaqueta gruesa para el frío.","I need a thick jacket for the cold.",["necesito","necesitas","necesita","necesitamos","necesitáis","necesitan"]],
+["mantener","to maintain","Mantenemos la casa limpia y ordenada.","We keep the house clean and tidy.",["mantengo","mantienes","mantiene","mantenemos","mantenéis","mantienen"]],
+["resultar","to result/turn out","El plan resultó ser un éxito enorme.","The plan turned out to be a huge success.",["resulto","resultas","resulta","resultamos","resultáis","resultan"]],
+["leer","to read","Leo una novela misteriosa antes de dormir.","I read a mysterious novel before sleeping.",["leo","lees","lee","leemos","leéis","leen"]],
+["caer","to fall","Las hojas secas caen en otoño.","Dry leaves fall in autumn.",["caigo","caes","cae","caemos","caéis","caen"]],
+["cambiar","to change","Cambiamos de planes por el clima malo.","We changed plans because of the bad weather.",["cambio","cambias","cambia","cambiamos","cambiáis","cambian"]],
+["presentar","to present","El estudiante presenta su proyecto final mañana.","The student presents his final project tomorrow.",["presento","presentas","presenta","presentamos","presentáis","presentan"]],
+["crear","to create","La artista crea pinturas coloridas y originales.","The artist creates colorful, original paintings.",["creo","creas","crea","creamos","creáis","crean"]],
+["abrir","to open","Abro la ventana para sentir el aire fresco.","I open the window to feel the fresh air.",["abro","abres","abre","abrimos","abrís","abren"]],
+["considerar","to consider","Consideramos varias opciones antes de decidir.","We considered several options before deciding.",["considero","consideras","considera","consideramos","consideráis","consideran"]],
+["oír","to hear","Oigo música suave desde la habitación vecina.","I hear soft music from the neighboring room.",["oigo","oyes","oye","oímos","oís","oyen"]],
+["acabar","to finish/end up","Acabamos la tarea justo antes de cenar.","We finished the homework right before dinner.",["acabo","acabas","acaba","acabamos","acabáis","acaban"]],
+["convertir","to convert/turn into","La lluvia convirtió la calle en un río.","The rain turned the street into a river.",["convierto","conviertes","convierte","convertimos","convertís","convierten"]],
+["ganar","to win/earn","Mi equipo favorito ganó el campeonato nacional.","My favorite team won the national championship.",["gano","ganas","gana","ganamos","ganáis","ganan"]],
+["formar","to form","Los estudiantes forman un grupo pequeño de estudio.","The students form a small study group.",["formo","formas","forma","formamos","formáis","forman"]],
+["traer","to bring","Trae tu paraguas porque va a llover.","Bring your umbrella because it's going to rain.",["traigo","traes","trae","traemos","traéis","traen"]],
+["partir","to leave/depart","El barco parte del puerto al amanecer.","The ship departs from the port at dawn.",["parto","partes","parte","partimos","partís","parten"]],
+["morir","to die","La planta murió por falta de agua.","The plant died from lack of water.",["muero","mueres","muere","morimos","morís","mueren"]],
+["aceptar","to accept","Acepto tu invitación con mucho gusto.","I accept your invitation with great pleasure.",["acepto","aceptas","acepta","aceptamos","aceptáis","aceptan"]],
+["realizar","to carry out/achieve","La empresa realizó un cambio importante.","The company carried out an important change.",["realizo","realizas","realiza","realizamos","realizáis","realizan"]],
+["suponer","to suppose","Supongo que llegarás tarde otra vez.","I suppose you'll arrive late again.",["supongo","supones","supone","suponemos","suponéis","suponen"]],
+["comprender","to understand","Comprendo tu frustración con el proyecto lento.","I understand your frustration with the slow project.",["comprendo","comprendes","comprende","comprendemos","comprendéis","comprenden"]],
+["lograr","to achieve/manage to","Logramos terminar la carrera difícil juntos.","We managed to finish the difficult race together.",["logro","logras","logra","logramos","lográis","logran"]],
+["explicar","to explain","La maestra explica la lección con paciencia.","The teacher explains the lesson patiently.",["explico","explicas","explica","explicamos","explicáis","explican"]],
+["preguntar","to ask","Le pregunto al taxista la dirección correcta.","I ask the taxi driver for the correct address.",["pregunto","preguntas","pregunta","preguntamos","preguntáis","preguntan"]],
+["tocar","to touch/play (music)","Mi hermana toca el piano cada tarde.","My sister plays the piano every afternoon.",["toco","tocas","toca","tocamos","tocáis","tocan"]],
+["reconocer","to recognize","Reconozco esa canción antigua enseguida.","I recognize that old song right away.",["reconozco","reconoces","reconoce","reconocemos","reconocéis","reconocen"]],
+["estudiar","to study","Estudio biología en la universidad pública.","I study biology at the public university.",["estudio","estudias","estudia","estudiamos","estudiáis","estudian"]],
+["alcanzar","to reach/achieve","Alcanzamos la cima de la montaña alta.","We reached the top of the tall mountain.",["alcanzo","alcanzas","alcanza","alcanzamos","alcanzáis","alcanzan"]],
+["nacer","to be born","Mi hija nació un día lluvioso de marzo.","My daughter was born on a rainy day in March.",["nazco","naces","nace","nacemos","nacéis","nacen"]],
+["dirigir","to direct/manage","El director dirige la película con talento.","The director directs the movie with talent.",["dirijo","diriges","dirige","dirigimos","dirigís","dirigen"]],
+["correr","to run","Corremos por el parque verde cada mañana.","We run through the green park every morning.",["corro","corres","corre","corremos","corréis","corren"]],
+["utilizar","to use","Utilizo un cuaderno viejo para apuntes rápidos.","I use an old notebook for quick notes.",["utilizo","utilizas","utiliza","utilizamos","utilizáis","utilizan"]],
+["pagar","to pay","Pagamos la cuenta con tarjeta de crédito.","We paid the bill with a credit card.",["pago","pagas","paga","pagamos","pagáis","pagan"]],
+["ayudar","to help","Ayudo a mi vecino anciano con las compras.","I help my elderly neighbor with the groceries.",["ayudo","ayudas","ayuda","ayudamos","ayudáis","ayudan"]],
+["gustar","to like/be pleasing","Me gusta el chocolate amargo con nueces.","I like bitter chocolate with nuts.",["gusto","gustas","gusta","gustamos","gustáis","gustan"]],
+["jugar","to play (games)","Los niños juegan fútbol en la calle estrecha.","The children play soccer on the narrow street.",["juego","juegas","juega","jugamos","jugáis","juegan"]],
+["escuchar","to listen","Escucho música clásica mientras trabajo.","I listen to classical music while I work.",["escucho","escuchas","escucha","escuchamos","escucháis","escuchan"]],
+["cumplir","to fulfill/turn (age)","Mi sobrino cumple diez años mañana.","My nephew turns ten years old tomorrow.",["cumplo","cumples","cumple","cumplimos","cumplís","cumplen"]],
+["ofrecer","to offer","El restaurante ofrece platos vegetarianos deliciosos.","The restaurant offers delicious vegetarian dishes.",["ofrezco","ofreces","ofrece","ofrecemos","ofrecéis","ofrecen"]],
+["descubrir","to discover","Los científicos descubrieron una especie nueva.","The scientists discovered a new species.",["descubro","descubres","descubre","descubrimos","descubrís","descubren"]],
+["levantarse","to get up","Me levanto temprano los días laborables.","I get up early on weekdays.",["me levanto","te levantas","se levanta","nos levantamos","os levantáis","se levantan"]],
+["intentar","to try","Intento aprender un idioma extranjero difícil.","I'm trying to learn a difficult foreign language.",["intento","intentas","intenta","intentamos","intentáis","intentan"]],
+["mostrar","to show","El guía nos muestra un mapa detallado.","The guide shows us a detailed map.",["muestro","muestras","muestra","mostramos","mostráis","muestran"]]
+  ]
+},
+sl: {
+  title: "100 Slovenian Verbs", frontLabel: "Glagol", hasConj: true, hasPinyin: false,
+  verbs: [
+["biti","to be","Ana je zelo prijazna in pametna.","Ana is very kind and smart.",["sem","si","je","smo","ste","so"]],
+["imeti","to have","Imamo psa in mačko doma.","We have a dog and a cat at home.",["imam","imaš","ima","imamo","imate","imajo"]],
+["narediti","to do/make","Mama naredi kosilo ob poldne.","Mom makes lunch at noon.",["naredim","narediš","naredi","naredimo","naredite","naredijo"]],
+["moči","to be able to/can","Ne morem priti na zabavo nocoj.","I can't come to the party tonight.",["morem","moreš","more","moremo","morete","morejo"]],
+["reči","to say","Učitelj reče, da bo izpit težak.","The teacher says the exam will be difficult.",["rečem","rečeš","reče","rečemo","rečete","rečejo"]],
+["iti","to go","Gremo na tržnico pred zaprtjem.","We're going to the market before it closes.",["grem","greš","gre","gremo","greste","gredo"]],
+["videti","to see","Z gore vidimo celo dolino.","From the mountain we see the whole valley.",["vidim","vidiš","vidi","vidimo","vidite","vidijo"]],
+["dati","to give","Stric nam da koristne nasvete.","Uncle gives us useful advice.",["dam","daš","da","damo","date","dajo"]],
+["vedeti","to know (facts)","Ne vem pravega odgovora na to vprašanje.","I don't know the right answer to this question.",["vem","veš","ve","vemo","veste","vedo"]],
+["hoteti","to want","Hočem kozarec mrzle vode.","I want a glass of cold water.",["hočem","hočeš","hoče","hočemo","hočete","hočejo"]],
+["priti","to come/arrive","Vlak pride pozno zaradi močnega dežja.","The train arrives late because of heavy rain.",["pridem","prideš","pride","pridemo","pridete","pridejo"]],
+["misliti","to think","Mislim, da je film dolgočasen.","I think the movie is boring.",["mislim","misliš","misli","mislimo","mislite","mislijo"]],
+["govoriti","to speak","Starši govorijo slovensko in angleško doma.","My parents speak Slovenian and English at home.",["govorim","govoriš","govori","govorimo","govorite","govorijo"]],
+["delati","to work","Brat dela v moderni pisarni.","My brother works in a modern office.",["delam","delaš","dela","delamo","delate","delajo"]],
+["živeti","to live","Živimo v majhnem stanovanju blizu reke.","We live in a small apartment near the river.",["živim","živiš","živi","živimo","živite","živijo"]],
+["gledati","to watch/look at","Otroci gledajo svetle zvezde.","The children look at the bright stars.",["gledam","gledaš","gleda","gledamo","gledate","gledajo"]],
+["poslušati","to listen","Poslušam klasično glasbo med delom.","I listen to classical music while working.",["poslušam","poslušaš","posluša","poslušamo","poslušate","poslušajo"]],
+["brati","to read","Berem skrivnostni roman pred spanjem.","I read a mysterious novel before sleeping.",["berem","bereš","bere","beremo","berete","berejo"]],
+["pisati","to write","Pišem dolgo pismo prijateljici.","I'm writing a long letter to my friend.",["pišem","pišeš","piše","pišemo","pišete","pišejo"]],
+["jesti","to eat","Vsak dan jemo sveže sadje in zelenjavo.","Every day we eat fresh fruit and vegetables.",["jem","ješ","je","jemo","jeste","jedo"]],
+["piti","to drink","Zjutraj pijemo vročo kavo.","In the morning we drink hot coffee.",["pijem","piješ","pije","pijemo","pijete","pijejo"]],
+["spati","to sleep","Otroci spijo osem ur ponoči.","The children sleep eight hours at night.",["spim","spiš","spi","spimo","spite","spijo"]],
+["hoditi","to walk","Vsako jutro hodimo po zelenem parku.","Every morning we walk through the green park.",["hodim","hodiš","hodi","hodimo","hodite","hodijo"]],
+["teči","to run","Deček teče hitro po stopnicah.","The boy runs quickly up the stairs.",["tečem","tečeš","teče","tečemo","tečete","tečejo"]],
+["igrati","to play","Otroci igrajo nogomet na ozki ulici.","The children play soccer on the narrow street.",["igram","igraš","igra","igramo","igrate","igrajo"]],
+["kupiti","to buy","Kupim svež kruh vsako jutro.","I buy fresh bread every morning.",["kupim","kupiš","kupi","kupimo","kupite","kupijo"]],
+["prodati","to sell","Trgovina prodaja poceni oblačila.","The store sells cheap clothes.",["prodam","prodaš","proda","prodamo","prodate","prodajo"]],
+["plačati","to pay","Plačamo račun s kreditno kartico.","We pay the bill with a credit card.",["plačam","plačaš","plača","plačamo","plačate","plačajo"]],
+["potrebovati","to need","Potrebujem debelo jakno za mraz.","I need a thick jacket for the cold.",["potrebujem","potrebuješ","potrebuje","potrebujemo","potrebujete","potrebujejo"]],
+["iskati","to look for","Iščem zanimivo knjigo o stari zgodovini.","I'm looking for an interesting book about ancient history.",["iščem","iščeš","išče","iščemo","iščete","iščejo"]],
+["najti","to find","Našel sem ključe pod starim kavčem.","I found the keys under the old couch.",["najdem","najdeš","najde","najdemo","najdete","najdejo"]],
+["izgubiti","to lose","Domača ekipa je izgubila pomembno tekmo.","The home team lost the important match.",["izgubim","izgubiš","izgubi","izgubimo","izgubite","izgubijo"]],
+["začeti","to begin","Predavanje se začne ob devetih zjutraj.","The lecture begins at nine in the morning.",["začnem","začneš","začne","začnemo","začnete","začnejo"]],
+["končati","to finish","Sestanek smo končali pred poldnem.","We finished the meeting before noon.",["končam","končaš","konča","končamo","končate","končajo"]],
+["nadaljevati","to continue","Nadaljujemo pot kljub slabemu vremenu.","We continue the journey despite bad weather.",["nadaljujem","nadaljuješ","nadaljuje","nadaljujemo","nadaljujete","nadaljujejo"]],
+["ostati","to stay/remain","Ostane samo kos čokoladne torte.","Only one piece of chocolate cake remains.",["ostanem","ostaneš","ostane","ostanemo","ostanete","ostanejo"]],
+["odpreti","to open","Odprem okno, da začutim svež zrak.","I open the window to feel the fresh air.",["odprem","odpreš","odpre","odpremo","odprete","odprejo"]],
+["zapreti","to close","Trgovina zapre vrata ob osmih zvečer.","The store closes its doors at eight in the evening.",["zaprem","zapreš","zapre","zapremo","zaprete","zaprejo"]],
+["pomagati","to help","Pomagam starejšemu sosedu z nakupovanjem.","I help my elderly neighbor with shopping.",["pomagam","pomagaš","pomaga","pomagamo","pomagate","pomagajo"]],
+["razumeti","to understand","Ne razumem tega zapletenega vprašanja.","I don't understand this complicated question.",["razumem","razumeš","razume","razumemo","razumete","razumejo"]],
+["učiti se","to study/learn","Učim se biologijo na javni univerzi.","I study biology at the public university.",["učim se","učiš se","uči se","učimo se","učite se","učijo se"]],
+["poznati","to know (people/places)","Poznam zelo znanega glasbenika.","I know a very famous musician.",["poznam","poznaš","pozna","poznamo","poznate","poznajo"]],
+["spoznati","to meet/get to know","Spoznali smo zanimive ljudi na potovanju.","We met interesting people while traveling.",["spoznam","spoznaš","spozna","spoznamo","spoznate","spoznajo"]],
+["klicati","to call","Vsak večer kličem svojo mamo.","Every evening I call my mother.",["kličem","kličeš","kliče","kličemo","kličete","kličejo"]],
+["čakati","to wait","Čakamo avtobus v mrzlem dežju.","We wait for the bus in the cold rain.",["čakam","čakaš","čaka","čakamo","čakate","čakajo"]],
+["upati","to hope","Upam, da bo jutri lepo vreme.","I hope the weather will be nice tomorrow.",["upam","upaš","upa","upamo","upate","upajo"]],
+["verjeti","to believe","Verjamem, da je ta igralec zelo nadarjen.","I believe that actor is very talented.",["verjamem","verjameš","verjame","verjamemo","verjamete","verjamejo"]],
+["čutiti","to feel","Čutim veliko veselje, ko te vidim.","I feel great joy when I see you.",["čutim","čutiš","čuti","čutimo","čutite","čutijo"]],
+["ljubiti","to love","Ljubim svojo družino nad vse.","I love my family above everything.",["ljubim","ljubiš","ljubi","ljubimo","ljubite","ljubijo"]],
+["sovražiti","to hate","Otrok sovraži zeleno zelenjavo.","The child hates green vegetables.",["sovražim","sovražiš","sovraži","sovražimo","sovražite","sovražijo"]],
+["smejati se","to laugh","Prijatelji se smejijo dobri šali.","The friends laugh at a good joke.",["smejem se","smeješ se","smeje se","smejemo se","smejete se","smejejo se"]],
+["jokati","to cry","Majhen deček joka zaradi izgubljene igrače.","The little boy cries because of the lost toy.",["jočem","jočeš","joče","jočemo","jočete","jočejo"]],
+["peti","to sing","Pevka lepo poje staro ljudsko pesem.","The singer beautifully sings an old folk song.",["pojem","poješ","poje","pojemo","pojete","pojejo"]],
+["plesati","to dance","Plešemo počasi ob mehki glasbi.","We dance slowly to soft music.",["plešem","plešeš","pleše","plešemo","plešete","plešejo"]],
+["kuhati","to cook","Babica kuha okusno juho vsako nedeljo.","Grandma cooks tasty soup every Sunday.",["kuham","kuhaš","kuha","kuhamo","kuhate","kuhajo"]],
+["voziti","to drive","Oče vozi star moder avto.","Dad drives an old blue car.",["vozim","voziš","vozi","vozimo","vozite","vozijo"]],
+["leteti","to fly","Letalo leti visoko nad oblaki.","The plane flies high above the clouds.",["letim","letiš","leti","letimo","letite","letijo"]],
+["plavati","to swim","Poleti plavamo v hladnem jezeru.","In summer we swim in the cold lake.",["plavam","plavaš","plava","plavamo","plavate","plavajo"]],
+["sedeti","to sit","Sedimo na udobnem zelenem kavču.","We sit on the comfortable green couch.",["sedim","sediš","sedi","sedimo","sedite","sedijo"]],
+["stati","to stand","Visok fant stoji pred vrati.","The tall boy stands in front of the door.",["stojim","stojiš","stoji","stojimo","stojite","stojijo"]],
+["ležati","to lie down","Mačka leži na toplem oknu.","The cat lies on the warm windowsill.",["ležim","ležiš","leži","ležimo","ležite","ležijo"]],
+["vstati","to get up","Ob delavnikih vstanem zgodaj.","On weekdays I get up early.",["vstanem","vstaneš","vstane","vstanemo","vstanete","vstanejo"]],
+["obleči se","to get dressed","Zjutraj se hitro oblečem za šolo.","In the morning I quickly get dressed for school.",["oblečem se","oblečeš se","obleče se","oblečemo se","oblečete se","oblečejo se"]],
+["umiti se","to wash oneself","Otroci se umijejo pred večerjo.","The children wash up before dinner.",["umijem se","umiješ se","umije se","umijemo se","umijete se","umijejo se"]],
+["sprehajati se","to take a walk","Vsak večer se sprehajamo ob reki.","Every evening we take a walk by the river.",["sprehajam se","sprehajaš se","sprehaja se","sprehajamo se","sprehajate se","sprehajajo se"]],
+["potovati","to travel","Radi potujemo v tuje dežele poleti.","We like to travel to foreign countries in summer.",["potujem","potuješ","potuje","potujemo","potujete","potujejo"]],
+["prispeti","to arrive","Gostje prispejo ob sedmih zvečer.","The guests arrive at seven in the evening.",["prispem","prispeš","prispe","prispemo","prispete","prispejo"]],
+["oditi","to leave/depart","Ladja odide iz pristanišča ob zori.","The ship departs from the port at dawn.",["odidem","odideš","odide","odidemo","odidete","odidejo"]],
+["vrniti se","to return","Vrnem se domov po dolgem delovnem dnevu.","I return home after a long workday.",["vrnem se","vrneš se","vrne se","vrnemo se","vrnete se","vrnejo se"]],
+["pozabiti","to forget","Vedno pozabim dežnik doma.","I always forget my umbrella at home.",["pozabim","pozabiš","pozabi","pozabimo","pozabite","pozabijo"]],
+["spomniti se","to remember","Spomnim se svojega prvega potovanja na morje.","I remember my first trip to the sea.",["spomnim se","spomniš se","spomni se","spomnimo se","spomnite se","spomnijo se"]],
+["razlagati","to explain","Učiteljica potrpežljivo razlaga težko snov.","The teacher patiently explains the difficult material.",["razlagam","razlagaš","razlaga","razlagamo","razlagate","razlagajo"]],
+["vprašati","to ask","Voznika taksija vprašam za pravo smer.","I ask the taxi driver for the right direction.",["vprašam","vprašaš","vpraša","vprašamo","vprašate","vprašajo"]],
+["odgovoriti","to answer","Študent hitro odgovori na vprašanje.","The student quickly answers the question.",["odgovorim","odgovoriš","odgovori","odgovorimo","odgovorite","odgovorijo"]],
+["povedati","to tell","Dedek nam pove zabavno zgodbo vsak večer.","Grandpa tells us a fun story every evening.",["povem","poveš","pove","povemo","poveste","povedo"]],
+["poslati","to send","Pošljem pomembno sporočilo šefu.","I send an important message to my boss.",["pošljem","pošlješ","pošlje","pošljemo","pošljete","pošljejo"]],
+["prejeti","to receive","Popoldne prejmemo presenečen paket.","In the afternoon we receive a surprise package.",["prejmem","prejmeš","prejme","prejmemo","prejmete","prejmejo"]],
+["sprejeti","to accept","Z veseljem sprejmem tvoje povabilo.","I gladly accept your invitation.",["sprejmem","sprejmeš","sprejme","sprejmemo","sprejmete","sprejmejo"]],
+["zavrniti","to refuse/reject","Direktor zavrne slabo ponudbo.","The director refuses the bad offer.",["zavrnem","zavrneš","zavrne","zavrnemo","zavrnete","zavrnejo"]],
+["dovoliti","to allow","Park ne dovoli prostih živali.","The park doesn't allow loose animals.",["dovolim","dovoliš","dovoli","dovolimo","dovolite","dovolijo"]],
+["prepovedati","to forbid","Šola prepove uporabo telefonov med poukom.","The school forbids using phones during class.",["prepovem","prepoveš","prepove","prepovemo","prepoveste","prepovedo"]],
+["obljubiti","to promise","Obljubim, da bom prišel pravočasno.","I promise I'll arrive on time.",["obljubim","obljubiš","obljubi","obljubimo","obljubite","obljubijo"]],
+["ustvariti","to create","Umetnica ustvarja barvite in izvirne slike.","The artist creates colorful and original paintings.",["ustvarim","ustvariš","ustvari","ustvarimo","ustvarite","ustvarijo"]],
+["zgraditi","to build","Delavci zgradijo novo hišo v enem letu.","The workers build a new house in one year.",["zgradim","zgradiš","zgradi","zgradimo","zgradite","zgradijo"]],
+["uničiti","to destroy","Nevihta uniči staro drevo v vrtu.","The storm destroys the old tree in the garden.",["uničim","uničiš","uniči","uničimo","uničite","uničijo"]],
+["popraviti","to fix","Mehanik popravi pokvarjen avto hitro.","The mechanic fixes the broken car quickly.",["popravim","popraviš","popravi","popravimo","popravite","popravijo"]],
+["spremeniti","to change","Zaradi slabega vremena spremenimo načrte.","Because of bad weather we change our plans.",["spremenim","spremeniš","spremeni","spremenimo","spremenite","spremenijo"]],
+["skrbeti","to care for/worry","Mama skrbi za bolnega otroka.","Mom takes care of the sick child.",["skrbim","skrbiš","skrbi","skrbimo","skrbite","skrbijo"]],
+["varovati","to protect","Policist varuje mirno sosesko.","The police officer protects the peaceful neighborhood.",["varujem","varuješ","varuje","varujemo","varujete","varujejo"]],
+["boriti se","to fight","Vojaki se borijo za svojo domovino.","The soldiers fight for their homeland.",["borim se","boriš se","bori se","borimo se","borite se","borijo se"]],
+["zmagati","to win","Naš najljubši klub zmaga državno prvenstvo.","Our favorite club wins the national championship.",["zmagam","zmagaš","zmaga","zmagamo","zmagate","zmagajo"]],
+["tekmovati","to compete","Šolski tim tekmuje na velikem tekmovanju.","The school team competes in a big competition.",["tekmujem","tekmuješ","tekmuje","tekmujemo","tekmujete","tekmujejo"]],
+["sodelovati","to collaborate","Podjetji sodelujeta pri novem projektu.","The two companies collaborate on a new project.",["sodelujem","sodeluješ","sodeluje","sodelujemo","sodelujete","sodelujejo"]],
+["voditi","to lead/guide","Izkušen vodnik vodi turiste skozi staro mesto.","An experienced guide leads tourists through the old town.",["vodim","vodiš","vodi","vodimo","vodite","vodijo"]],
+["slediti","to follow","Pes zvesto sledi svojemu lastniku.","The dog faithfully follows its owner.",["sledim","slediš","sledi","sledimo","sledite","sledijo"]],
+["srečati","to meet (by chance)","Na ulici srečam starega prijatelja.","On the street I meet an old friend.",["srečam","srečaš","sreča","srečamo","srečate","srečajo"]],
+["obiskati","to visit","Poleti obiščemo babico na podeželju.","In summer we visit grandma in the countryside.",["obiščem","obiščeš","obišče","obiščemo","obiščete","obiščejo"]],
+["pozdraviti","to greet","Prijazno pozdravim novega soseda.","I kindly greet my new neighbor.",["pozdravim","pozdraviš","pozdravi","pozdravimo","pozdravite","pozdravijo"]],
+["zahvaliti se","to thank","Zahvalim se natakarju za hitro postrežbo.","I thank the waiter for the quick service.",["zahvalim se","zahvališ se","zahvali se","zahvalimo se","zahvalite se","zahvalijo se"]],
+["praznovati","to celebrate","Vsako leto praznujemo rojstni dan z veliko torto.","Every year we celebrate the birthday with a big cake.",["praznujem","praznuješ","praznuje","praznujemo","praznujete","praznujejo"]]
+  ]
+},
+zh: {
+  title: "100 Chinese Verbs", frontLabel: "动词", hasConj: false, hasPinyin: true,
+  verbs: [
+["是","shì","to be","她是一个聪明的学生。","Tā shì yí gè cōngmíng de xuéshēng.","She is a smart student."],
+["有","yǒu","to have","我们有一只小狗和一只猫。","Wǒmen yǒu yì zhī xiǎo gǒu hé yì zhī māo.","We have a small dog and a cat."],
+["做","zuò","to do/make","妈妈每天做晚饭。","Māma měitiān zuò wǎnfàn.","Mom makes dinner every day."],
+["去","qù","to go","我们去市场买水果。","Wǒmen qù shìchǎng mǎi shuǐguǒ.","We go to the market to buy fruit."],
+["来","lái","to come","我的朋友明天来北京。","Wǒ de péngyou míngtiān lái Běijīng.","My friend is coming to Beijing tomorrow."],
+["看","kàn","to see/watch","孩子们看漂亮的星星。","Háizimen kàn piàoliang de xīngxing.","The children look at the beautiful stars."],
+["听","tīng","to listen","我工作的时候听古典音乐。","Wǒ gōngzuò de shíhou tīng gǔdiǎn yīnyuè.","I listen to classical music while I work."],
+["说","shuō","to speak/say","老师说中文和英文。","Lǎoshī shuō Zhōngwén hé Yīngwén.","The teacher speaks Chinese and English."],
+["吃","chī","to eat","我们每天吃新鲜的水果。","Wǒmen měitiān chī xīnxiān de shuǐguǒ.","We eat fresh fruit every day."],
+["喝","hē","to drink","早上我们喝热咖啡。","Zǎoshang wǒmen hē rè kāfēi.","In the morning we drink hot coffee."],
+["睡觉","shuìjiào","to sleep","孩子们晚上睡八个小时。","Háizimen wǎnshang shuì bā gè xiǎoshí.","The children sleep eight hours at night."],
+["走路","zǒulù","to walk","我们每天早上在公园走路。","Wǒmen měitiān zǎoshang zài gōngyuán zǒulù.","Every morning we walk in the park."],
+["跑","pǎo","to run","那个男孩很快地跑上楼梯。","Nàge nánhái hěn kuài de pǎo shàng lóutī.","That boy runs quickly up the stairs."],
+["玩","wán","to play","孩子们在狭窄的街上玩足球。","Háizimen zài xiázhǎi de jiē shàng wán zúqiú.","The children play soccer on the narrow street."],
+["买","mǎi","to buy","我每天早上买新鲜面包。","Wǒ měitiān zǎoshang mǎi xīnxiān miànbāo.","I buy fresh bread every morning."],
+["卖","mài","to sell","那家商店卖便宜的衣服。","Nà jiā shāngdiàn mài piányi de yīfu.","That store sells cheap clothes."],
+["付钱","fùqián","to pay","我们用信用卡付钱。","Wǒmen yòng xìnyòngkǎ fùqián.","We pay with a credit card."],
+["需要","xūyào","to need","冬天我需要一件厚外套。","Dōngtiān wǒ xūyào yí jiàn hòu wàitào.","In winter I need a thick jacket."],
+["找","zhǎo","to look for","我在找一本关于古代历史的有趣的书。","Wǒ zài zhǎo yì běn guānyú gǔdài lìshǐ de yǒuqù de shū.","I'm looking for an interesting book about ancient history."],
+["找到","zhǎodào","to find","我在旧沙发下面找到了钥匙。","Wǒ zài jiù shāfā xiàmiàn zhǎodàole yàoshi.","I found the keys under the old sofa."],
+["丢","diū","to lose (an object)","我丢了我的手机。","Wǒ diūle wǒ de shǒujī.","I lost my phone."],
+["开始","kāishǐ","to begin","课在九点开始。","Kè zài jiǔ diǎn kāishǐ.","The class begins at nine o'clock."],
+["结束","jiéshù","to finish","我们在中午前结束了会议。","Wǒmen zài zhōngwǔ qián jiéshùle huìyì.","We finished the meeting before noon."],
+["继续","jìxù","to continue","尽管天气不好，我们继续旅行。","Jǐnguǎn tiānqì bù hǎo, wǒmen jìxù lǚxíng.","Despite the bad weather, we continue the trip."],
+["留","liú","to remain/stay","桌子上留着一块巧克力蛋糕。","Zhuōzi shàng liúzhe yí kuài qiǎokèlì dàngāo.","There remains one piece of chocolate cake on the table."],
+["打开","dǎkāi","to open","我打开窗户感受新鲜空气。","Wǒ dǎkāi chuānghu gǎnshòu xīnxiān kōngqì.","I open the window to feel the fresh air."],
+["关","guān","to close","商店晚上八点关门。","Shāngdiàn wǎnshang bā diǎn guānmén.","The store closes at eight in the evening."],
+["帮助","bāngzhù","to help","我帮助年老的邻居买东西。","Wǒ bāngzhù niánlǎo de línjū mǎi dōngxi.","I help my elderly neighbor with shopping."],
+["懂","dǒng","to understand","我不懂这个复杂的问题。","Wǒ bù dǒng zhège fùzá de wèntí.","I don't understand this complicated question."],
+["学习","xuéxí","to study","我在大学学习生物学。","Wǒ zài dàxué xuéxí shēngwùxué.","I study biology at university."],
+["认识","rènshi","to know (people)","我认识一位很有名的音乐家。","Wǒ rènshi yí wèi hěn yǒumíng de yīnyuèjiā.","I know a very famous musician."],
+["知道","zhīdào","to know (facts)","我不知道这个难题的正确答案。","Wǒ bù zhīdào zhège nántí de zhèngquè dá'àn.","I don't know the correct answer to this difficult question."],
+["叫","jiào","to call/be named","那只狗叫小黑。","Nà zhī gǒu jiào Xiǎo Hēi.","That dog is called Xiao Hei."],
+["等","děng","to wait","我们在寒冷的雨中等公共汽车。","Wǒmen zài hánlěng de yǔ zhōng děng gōnggòng qìchē.","We wait for the bus in the cold rain."],
+["希望","xīwàng","to hope","我希望明天天气好。","Wǒ xīwàng míngtiān tiānqì hǎo.","I hope the weather is nice tomorrow."],
+["相信","xiāngxìn","to believe","我相信那位演员很有才华。","Wǒ xiāngxìn nà wèi yǎnyuán hěn yǒu cáihuá.","I believe that actor is very talented."],
+["感觉","gǎnjué","to feel","见到你我感觉很高兴。","Jiàndào nǐ wǒ gǎnjué hěn gāoxìng.","I feel very happy to see you."],
+["爱","ài","to love","我爱我的家人胜过一切。","Wǒ ài wǒ de jiārén shèngguò yíqiè.","I love my family above everything."],
+["恨","hèn","to hate","那个孩子恨绿色的蔬菜。","Nàge háizi hèn lǜsè de shūcài.","That child hates green vegetables."],
+["笑","xiào","to laugh","朋友们对一个好笑话笑了。","Péngyoumen duì yí gè hǎo xiàohuà xiàole.","The friends laughed at a good joke."],
+["哭","kū","to cry","小男孩因为丢了玩具而哭。","Xiǎo nánhái yīnwèi diūle wánjù ér kū.","The little boy cries because he lost his toy."],
+["唱歌","chànggē","to sing","歌手很好听地唱一首老民歌。","Gēshǒu hěn hǎotīng de chàng yì shǒu lǎo míngē.","The singer beautifully sings an old folk song."],
+["跳舞","tiàowǔ","to dance","我们伴着轻柔的音乐慢慢跳舞。","Wǒmen bànzhe qīngróu de yīnyuè mànmàn tiàowǔ.","We dance slowly to soft music."],
+["做饭","zuòfàn","to cook","奶奶每个星期天做美味的汤。","Nǎinai měi ge xīngqītiān zuò měiwèi de tāng.","Grandma cooks tasty soup every Sunday."],
+["开车","kāichē","to drive","爸爸开一辆旧蓝色汽车。","Bàba kāi yí liàng jiù lánsè qìchē.","Dad drives an old blue car."],
+["飞","fēi","to fly","飞机在云上高高地飞。","Fēijī zài yún shàng gāogāo de fēi.","The plane flies high above the clouds."],
+["游泳","yóuyǒng","to swim","夏天我们在凉爽的湖里游泳。","Xiàtiān wǒmen zài liángshuǎng de hú lǐ yóuyǒng.","In summer we swim in the cool lake."],
+["坐","zuò","to sit","我们坐在舒服的绿色沙发上。","Wǒmen zuò zài shūfu de lǜsè shāfā shàng.","We sit on the comfortable green couch."],
+["站","zhàn","to stand","高个子男孩站在门前。","Gāo gèzi nánhái zhàn zài mén qián.","The tall boy stands in front of the door."],
+["躺","tǎng","to lie down","猫躺在温暖的窗台上。","Māo tǎng zài wēnnuǎn de chuāngtái shàng.","The cat lies on the warm windowsill."],
+["起床","qǐchuáng","to get up","平时我很早起床。","Píngshí wǒ hěn zǎo qǐchuáng.","On weekdays I get up early."],
+["穿","chuān","to wear/put on","冬天她穿一件红色的大衣。","Dōngtiān tā chuān yí jiàn hóngsè de dàyī.","In winter she wears a red coat."],
+["洗","xǐ","to wash","孩子们晚饭前洗手。","Háizimen wǎnfàn qián xǐ shǒu.","The children wash their hands before dinner."],
+["散步","sànbù","to take a walk","我们每天晚上在河边散步。","Wǒmen měitiān wǎnshang zài hébiān sànbù.","Every evening we take a walk by the river."],
+["旅行","lǚxíng","to travel","夏天我们喜欢去国外旅行。","Xiàtiān wǒmen xǐhuan qù guówài lǚxíng.","In summer we like to travel abroad."],
+["到达","dàodá","to arrive","客人晚上七点到达。","Kèrén wǎnshang qī diǎn dàodá.","The guests arrive at seven in the evening."],
+["离开","líkāi","to leave/depart","船在黎明离开港口。","Chuán zài límíng líkāi gǎngkǒu.","The ship departs from the port at dawn."],
+["回家","huíjiā","to return home","工作了很长时间以后，我回家。","Gōngzuòle hěn cháng shíjiān yǐhòu, wǒ huíjiā.","I return home after a long workday."],
+["忘记","wàngjì","to forget","我总是忘记带雨伞。","Wǒ zǒngshì wàngjì dài yǔsǎn.","I always forget to bring my umbrella."],
+["记得","jìde","to remember","我记得我第一次去海边旅行。","Wǒ jìde wǒ dì-yī cì qù hǎibiān lǚxíng.","I remember my first trip to the seaside."],
+["解释","jiěshì","to explain","老师耐心地解释难懂的内容。","Lǎoshī nàixīn de jiěshì nán dǒng de nèiróng.","The teacher patiently explains the difficult material."],
+["问","wèn","to ask","我向出租车司机问正确的方向。","Wǒ xiàng chūzūchē sījī wèn zhèngquè de fāngxiàng.","I ask the taxi driver for the correct direction."],
+["回答","huídá","to answer","学生很快回答了问题。","Xuésheng hěn kuài huídále wèntí.","The student quickly answered the question."],
+["告诉","gàosu","to tell","爷爷告诉我们一个有趣的故事。","Yéye gàosu wǒmen yí gè yǒuqù de gùshi.","Grandpa tells us an interesting story."],
+["寄","jì","to send","我给老板寄一封重要的邮件。","Wǒ gěi lǎobǎn jì yì fēng zhòngyào de yóujiàn.","I send an important email to my boss."],
+["收到","shōudào","to receive","下午我们收到了一个惊喜包裹。","Xiàwǔ wǒmen shōudàole yí gè jīngxǐ bāoguǒ.","In the afternoon we received a surprise package."],
+["接受","jiēshòu","to accept","我很高兴地接受你的邀请。","Wǒ hěn gāoxìng de jiēshòu nǐ de yāoqǐng.","I gladly accept your invitation."],
+["拒绝","jùjué","to refuse","经理拒绝了那个不好的提议。","Jīnglǐ jùjuéle nàge bù hǎo de tíyì.","The manager refuses the bad offer."],
+["允许","yǔnxǔ","to allow","公园不允许宠物自由活动。","Gōngyuán bù yǔnxǔ chǒngwù zìyóu huódòng.","The park doesn't allow pets to roam freely."],
+["禁止","jìnzhǐ","to forbid","学校在上课时禁止使用手机。","Xuéxiào zài shàngkè shí jìnzhǐ shǐyòng shǒujī.","The school forbids using phones during class."],
+["答应","dāying","to promise","我答应会准时到。","Wǒ dāying huì zhǔnshí dào.","I promise I'll arrive on time."],
+["创造","chuàngzào","to create","那位艺术家创造出色彩丰富、有创意的画。","Nà wèi yìshùjiā chuàngzào chū sècǎi fēngfù, yǒu chuàngyì de huà.","The artist creates colorful, original paintings."],
+["建","jiàn","to build","工人们一年内建了一座新房子。","Gōngrénmen yì nián nèi jiànle yí zuò xīn fángzi.","The workers build a new house within one year."],
+["破坏","pòhuài","to destroy","暴风雨破坏了花园里的老树。","Bàofēngyǔ pòhuàile huāyuán lǐ de lǎo shù.","The storm destroys the old tree in the garden."],
+["修理","xiūlǐ","to fix/repair","修理工很快修好了坏的汽车。","Xiūlǐ gōng hěn kuài xiūhǎole huài de qìchē.","The mechanic quickly fixes the broken car."],
+["改变","gǎibiàn","to change","因为天气不好，我们改变了计划。","Yīnwèi tiānqì bù hǎo, wǒmen gǎibiànle jìhuà.","Because of bad weather, we changed our plans."],
+["照顾","zhàogù","to take care of","妈妈照顾生病的孩子。","Māma zhàogù shēngbìng de háizi.","Mom takes care of the sick child."],
+["保护","bǎohù","to protect","警察保护安静的社区。","Jǐngchá bǎohù ānjìng de shèqū.","The police officer protects the quiet neighborhood."],
+["战斗","zhàndòu","to fight","士兵们为自己的祖国而战斗。","Shìbīngmen wèi zìjǐ de zǔguó ér zhàndòu.","The soldiers fight for their homeland."],
+["赢","yíng","to win","我们最喜欢的球队赢了全国冠军赛。","Wǒmen zuì xǐhuan de qiúduì yíngle quánguó guànjūnsài.","Our favorite team wins the national championship."],
+["输","shū","to lose (a game)","主场球队输了那场重要的比赛。","Zhǔchǎng qiúduì shūle nà chǎng zhòngyào de bǐsài.","The home team lost the important game."],
+["比赛","bǐsài","to compete","学校代表队参加一场大型比赛。","Xuéxiào dàibiǎoduì cānjiā yì chǎng dàxíng bǐsài.","The school team competes in a large competition."],
+["合作","hézuò","to collaborate","两家公司在一个新项目上合作。","Liǎng jiā gōngsī zài yí gè xīn xiàngmù shàng hézuò.","The two companies collaborate on a new project."],
+["领导","lǐngdǎo","to lead","一位有经验的导游领导游客参观古城。","Yí wèi yǒu jīngyàn de dǎoyóu lǐngdǎo yóukè cānguān gǔchéng.","An experienced guide leads tourists through the old town."],
+["跟着","gēnzhe","to follow","狗忠实地跟着它的主人。","Gǒu zhōngshí de gēnzhe tā de zhǔrén.","The dog faithfully follows its owner."],
+["碰到","pèngdào","to meet (by chance)","我在街上碰到一个老朋友。","Wǒ zài jiē shàng pèngdào yí gè lǎo péngyou.","I meet an old friend on the street."],
+["拜访","bàifǎng","to visit","夏天我们去乡下拜访奶奶。","Xiàtiān wǒmen qù xiāngxià bàifǎng nǎinai.","In summer we visit grandma in the countryside."],
+["打招呼","dǎzhāohu","to greet","我友好地跟新邻居打招呼。","Wǒ yǒuhǎo de gēn xīn línjū dǎzhāohu.","I kindly greet my new neighbor."],
+["感谢","gǎnxiè","to thank","我感谢服务员快速的服务。","Wǒ gǎnxiè fúwùyuán kuàisù de fúwù.","I thank the waiter for the quick service."],
+["庆祝","qìngzhù","to celebrate","我们每年用一个大蛋糕庆祝生日。","Wǒmen měinián yòng yí gè dà dàngāo qìngzhù shēngrì.","Every year we celebrate the birthday with a big cake."],
+["出生","chūshēng","to be born","我女儿在三月一个下雨天出生。","Wǒ nǚ'ér zài sānyuè yí gè xiàyǔ tiān chūshēng.","My daughter was born on a rainy day in March."],
+["死","sǐ","to die","那棵植物因为缺水而死了。","Nà kē zhíwù yīnwèi quē shuǐ ér sǐle.","The plant died from lack of water."],
+["长大","zhǎngdà","to grow up","孩子们在这个小镇上长大。","Háizimen zài zhège xiǎo zhèn shàng zhǎngdà.","The children grow up in this small town."],
+["做梦","zuòmèng","to dream","我昨晚做了一个奇怪的梦。","Wǒ zuówǎn zuòle yí gè qíguài de mèng.","I had a strange dream last night."],
+["想","xiǎng","to think","我想这部电影很无聊。","Wǒ xiǎng zhè bù diànyǐng hěn wúliáo.","I think this movie is boring."],
+["决定","juédìng","to decide","我们在决定之前考虑了几个选项。","Wǒmen zài juédìng zhīqián kǎolǜle jǐ gè xuǎnxiàng.","We considered several options before deciding."],
+["工作","gōngzuò","to work","我哥哥在一个现代化的办公室工作。","Wǒ gēge zài yí gè xiàndàihuà de bàngōngshì gōngzuò.","My brother works in a modern office."],
+["生活","shēnghuó","to live","我们生活在河边的一个小公寓里。","Wǒmen shēnghuó zài hébiān de yí gè xiǎo gōngyù lǐ.","We live in a small apartment by the river."],
+["拿","ná","to take/hold","请帮我拿一下这个重箱子。","Qǐng bāng wǒ ná yíxià zhège zhòng xiāngzi.","Please help me carry this heavy box."],
+["给","gěi","to give","叔叔给我们有用又诚实的建议。","Shūshu gěi wǒmen yǒuyòng yòu chéngshí de jiànyì.","Uncle gives us useful and honest advice."]
+  ]
+}
+};
+
+let currentLang = 'es';
+let order = decks[currentLang].verbs.map((_, i) => i);
+let idx = 0;
+let mode = 'front'; // 'front' | 'back' | 'conj'
+
+const cardEl = document.getElementById('card');
+const counterEl = document.getElementById('counter');
+const titleEl = document.getElementById('title');
+const flipBtn = document.getElementById('flipBtn');
+const transBtn = document.getElementById('transBtn');
+const conjBtn = document.getElementById('conjBtn');
+
+function render() {
+  const deck = decks[currentLang];
+  const v = deck.verbs[order[idx]];
+  counterEl.textContent = (idx + 1) + ' / ' + deck.verbs.length;
+
+  conjBtn.classList.toggle('hidden', !deck.hasConj);
+  flipBtn.classList.toggle('active-mode', mode === 'front');
+  transBtn.classList.toggle('active-mode', mode === 'back');
+  conjBtn.classList.toggle('active-mode', mode === 'conj');
+
+  if (mode === 'front') {
+    if (deck.hasPinyin) {
+      cardEl.innerHTML =
+        '<p class="label">' + deck.frontLabel + '</p>' +
+        '<p class="word">' + v[0] + '</p>' +
+        '<p class="pinyin">' + v[1] + '</p>' +
+        '<p class="sentence">' + v[3] + '</p>' +
+        '<p class="sentence-pinyin">' + v[4] + '</p>';
+    } else {
+      cardEl.innerHTML =
+        '<p class="label">' + deck.frontLabel + '</p>' +
+        '<p class="word">' + v[0] + '</p>' +
+        '<p class="sentence">' + v[2] + '</p>';
+    }
+  } else if (mode === 'back') {
+    if (deck.hasPinyin) {
+      cardEl.innerHTML =
+        '<p class="label">Verb</p>' +
+        '<p class="word">' + v[2] + '</p>' +
+        '<p class="sentence">' + v[5] + '</p>';
+    } else {
+      cardEl.innerHTML =
+        '<p class="label">Verb</p>' +
+        '<p class="word">' + (v[0].charAt(0).toUpperCase() + v[0].slice(1)) + '</p>' +
+        '<p class="sub">' + v[1] + '</p>' +
+        '<p class="sentence">' + v[3] + '</p>';
+    }
+  } else {
+    const pn = pronouns[currentLang];
+    const forms = v[4];
+    let rows = '';
+    for (let i = 0; i < 6; i++) {
+      rows += '<tr><td class="pronoun">' + pn[i] + '</td><td class="form">' + forms[i] + '</td></tr>';
+    }
+    cardEl.innerHTML =
+      '<p class="label">' + v[0] + ' — present tense</p>' +
+      '<table class="conj-table">' + rows + '</table>';
+  }
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  titleEl.textContent = decks[lang].title;
+  order = decks[lang].verbs.map((_, i) => i);
+  idx = 0;
+  mode = 'front';
+  document.getElementById('btnEs').classList.toggle('active', lang === 'es');
+  document.getElementById('btnSl').classList.toggle('active', lang === 'sl');
+  document.getElementById('btnZh').classList.toggle('active', lang === 'zh');
+  document.body.classList.toggle('lang-es', lang === 'es');
+  document.body.classList.toggle('lang-sl', lang === 'sl');
+  document.body.classList.toggle('lang-zh', lang === 'zh');
+  render();
+}
+
+function next() {
+  idx = (idx + 1) % decks[currentLang].verbs.length;
+  mode = 'front';
+  render();
+}
+
+function prev() {
+  idx = (idx - 1 + decks[currentLang].verbs.length) % decks[currentLang].verbs.length;
+  mode = 'front';
+  render();
+}
+
+function shuffle() {
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  idx = 0;
+  mode = 'front';
+  render();
+}
+
+cardEl.addEventListener('click', () => {
+  const deck = decks[currentLang];
+  if (deck.hasConj) {
+    mode = mode === 'front' ? 'back' : mode === 'back' ? 'conj' : 'front';
+  } else {
+    mode = mode === 'front' ? 'back' : 'front';
+  }
+  render();
+});
+flipBtn.addEventListener('click', () => { mode = 'front'; render(); });
+transBtn.addEventListener('click', () => { mode = 'back'; render(); });
+conjBtn.addEventListener('click', () => { mode = 'conj'; render(); });
+document.getElementById('nextBtn').addEventListener('click', next);
+document.getElementById('prevBtn').addEventListener('click', prev);
+document.getElementById('shuffleBtn').addEventListener('click', shuffle);
+document.getElementById('btnEs').addEventListener('click', () => setLang('es'));
+document.getElementById('btnSl').addEventListener('click', () => setLang('sl'));
+document.getElementById('btnZh').addEventListener('click', () => setLang('zh'));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') next();
+  if (e.key === 'ArrowLeft') prev();
+});
+
+render();
+</script>
+</body>
+</html>
