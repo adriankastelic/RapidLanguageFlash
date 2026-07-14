@@ -190,6 +190,81 @@
   }
   .nav-controls button:active { transform: scale(0.97); }
 
+  .controls button.tab-complete:not(.active-mode) {
+    background-color: #2F9E58;
+    color: #ffffff;
+    border-color: #2F9E58;
+  }
+  #quizBtn.tab-complete {
+    background-color: #2F9E58;
+    color: #ffffff;
+    border-color: #2F9E58;
+  }
+
+  .lang-toggle button#btnStats { flex: 1.3; }
+
+  .stats-table {
+    max-height: 60vh;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card-bg);
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: 20px 1.1fr 1.3fr 52px 52px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .stats-row:last-child { border-bottom: none; }
+  .stats-rank { color: var(--text-secondary); font-size: 12px; }
+  .stats-word { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stats-meaning { color: var(--text-secondary); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stats-count {
+    font-weight: 600;
+    font-size: 12px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 20px;
+    padding: 3px 4px;
+    text-align: center;
+  }
+  .stats-count-completed {
+    font-weight: 600;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 20px;
+    padding: 3px 4px;
+    text-align: center;
+  }
+  .stats-count-completed.done {
+    background: #2F9E58;
+    color: #fff;
+    border-color: #2F9E58;
+  }
+  .stats-row.stats-header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-secondary);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+  }
+  .stats-row.stats-header .stats-count,
+  .stats-row.stats-header .stats-count-completed {
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    padding: 3px 4px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
   .hint { text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 14px; }
 </style>
 </head>
@@ -201,29 +276,42 @@
     <button id="btnEs" class="active">Español</button>
     <button id="btnSl">Slovenščina</button>
     <button id="btnZh">中文</button>
+    <button id="btnStats">📊 Stats</button>
   </div>
 
-  <div class="toolbar">
-    <span id="counter">1 / 100</span>
-    <button id="shuffleBtn">Shuffle</button>
+  <div id="flashcardView">
+    <div class="toolbar">
+      <span id="counter">1 / 100</span>
+      <button id="shuffleBtn">Shuffle</button>
+    </div>
+
+    <div class="flag-stripe"><span></span><span></span><span></span></div>
+    <div class="card" id="card"></div>
+
+    <div class="controls">
+      <button id="flipBtn" class="active-mode">Word / sentence</button>
+      <button id="transBtn">English</button>
+      <button id="conjBtn">Conjugation</button>
+      <button id="quizBtn">Quiz</button>
+    </div>
+
+    <div class="nav-controls">
+      <button id="prevBtn">Previous</button>
+      <button id="nextBtn">Next</button>
+    </div>
+
+    <p class="hint">Switch between views above.</p>
   </div>
 
-  <div class="flag-stripe"><span></span><span></span><span></span></div>
-  <div class="card" id="card"></div>
-
-  <div class="controls">
-    <button id="flipBtn" class="active-mode">Word / sentence</button>
-    <button id="transBtn">English</button>
-    <button id="conjBtn">Conjugation</button>
-    <button id="quizBtn">Quiz</button>
+  <div id="statsView" style="display:none;">
+    <div class="lang-toggle" id="statsLangToggle">
+      <button id="statsBtnEs" class="active">Español</button>
+      <button id="statsBtnSl">Slovenščina</button>
+      <button id="statsBtnZh">中文</button>
+    </div>
+    <p class="hint" style="margin-top:0;">Sorted by how many times each verb has been viewed, most first.</p>
+    <div id="statsTableWrap"></div>
   </div>
-
-  <div class="nav-controls">
-    <button id="prevBtn">Previous</button>
-    <button id="nextBtn">Next</button>
-  </div>
-
-  <p class="hint">Switch between views above.</p>
 </div>
 
 <script>
@@ -649,10 +737,79 @@ const charInfo = {
 "生":{p:"shēng",c:"pictograph of a plant sprouting from soil",n:"A stem pushing up out of the ground — new growth. \"To be born, to live, to grow.\""}
 };
 
-let currentLang = 'es';
+const PROGRESS_KEY = 'verbFlashcardsProgress_v1';
 
+function loadProgress() {
+  let data = null;
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (raw) data = JSON.parse(raw);
+  } catch (e) { /* localStorage unavailable, fall back to in-memory */ }
+  if (!data) data = {};
+  if (!data.es) data.es = {};
+  if (!data.sl) data.sl = {};
+  if (!data.zh) data.zh = {};
+  if (!data.lastIndex) data.lastIndex = { es: 0, sl: 0, zh: 0 };
+  return data;
+}
+
+function saveProgress() {
+  try {
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressData));
+  } catch (e) { /* storage full or disabled — progress just won't persist */ }
+}
+
+function getEntry(lang, word) {
+  if (!progressData[lang]) progressData[lang] = {};
+  if (!progressData[lang][word]) {
+    progressData[lang][word] = { front: false, back: false, extra: false, quiz: false, views: 0, completedReviews: 0 };
+  }
+  return progressData[lang][word];
+}
+
+function maybeCountCompletedReview(entry) {
+  const wasFullyDone = entry._wasFullyDone;
+  const isFullyDone = entry.front && entry.back && entry.extra && entry.quiz;
+  if (isFullyDone && !wasFullyDone) {
+    entry.completedReviews = (entry.completedReviews || 0) + 1;
+    entry._justCompleted = true;
+  }
+  entry._wasFullyDone = isFullyDone;
+}
+
+function resetIfJustCompleted(lang, word) {
+  const entry = getEntry(lang, word);
+  if (entry._justCompleted) {
+    entry.front = false;
+    entry.back = false;
+    entry.extra = false;
+    entry.quiz = false;
+    entry._wasFullyDone = false;
+    entry._justCompleted = false;
+    saveProgress();
+  }
+}
+
+function markTabSeen(lang, word, tabKey) {
+  const entry = getEntry(lang, word);
+  if (!entry[tabKey]) {
+    entry[tabKey] = true;
+    maybeCountCompletedReview(entry);
+    saveProgress();
+  }
+}
+
+function recordView(lang, word) {
+  const entry = getEntry(lang, word);
+  entry.views = (entry.views || 0) + 1;
+  saveProgress();
+}
+
+let progressData = loadProgress();
+
+let currentLang = 'es';
 let order = decks[currentLang].verbs.map((_, i) => i);
-let idx = 0;
+let idx = progressData.lastIndex[currentLang] || 0;
 let mode = 'front'; // 'front' | 'back' | 'extra' | 'quiz'
 let quizState = null;
 
@@ -663,6 +820,14 @@ const flipBtn = document.getElementById('flipBtn');
 const transBtn = document.getElementById('transBtn');
 const conjBtn = document.getElementById('conjBtn');
 const quizBtn = document.getElementById('quizBtn');
+
+let viewMode = 'flashcards'; // 'flashcards' | 'stats'
+let statsLang = 'es';
+
+function saveLastPosition() {
+  progressData.lastIndex[currentLang] = order[idx];
+  saveProgress();
+}
 
 function buildQuiz() {
   const deck = decks[currentLang];
@@ -716,6 +881,10 @@ function handleQuizClick(e) {
       quizState.matchedRightDisplay[displayIdx] = true;
       quizState.correctCount++;
       quizState.selectedLeftIdx = null;
+      if (quizState.correctCount === quizState.total) {
+        const v = decks[currentLang].verbs[order[idx]];
+        markTabSeen(currentLang, v[0], 'quiz');
+      }
       render();
     } else {
       quizState.wrongFlashDisplayIdx = displayIdx;
@@ -735,11 +904,24 @@ function render() {
   const v = deck.verbs[order[idx]];
   counterEl.textContent = (idx + 1) + ' / ' + deck.verbs.length;
 
-  conjBtn.textContent = deck.extraLabel;
+  const entry = getEntry(currentLang, v[0]);
+  if (mode === 'front') markTabSeen(currentLang, v[0], 'front');
+  if (mode === 'back') markTabSeen(currentLang, v[0], 'back');
+  if (mode === 'extra') markTabSeen(currentLang, v[0], 'extra');
+
+  conjBtn.textContent = deck.extraLabel + (entry.extra ? ' ✓' : '');
+  flipBtn.textContent = 'Word / sentence' + (entry.front ? ' ✓' : '');
+  transBtn.textContent = 'English' + (entry.back ? ' ✓' : '');
+  quizBtn.textContent = 'Quiz' + (entry.quiz ? ' ✓' : '');
+
   flipBtn.classList.toggle('active-mode', mode === 'front');
   transBtn.classList.toggle('active-mode', mode === 'back');
   conjBtn.classList.toggle('active-mode', mode === 'extra');
   quizBtn.classList.toggle('active-mode', mode === 'quiz');
+  flipBtn.classList.toggle('tab-complete', entry.front);
+  transBtn.classList.toggle('tab-complete', entry.back);
+  conjBtn.classList.toggle('tab-complete', entry.extra);
+  quizBtn.classList.toggle('tab-complete', entry.quiz);
 
   if (mode === 'front') {
     if (deck.hasPinyin) {
@@ -823,10 +1005,11 @@ function render() {
 }
 
 function setLang(lang) {
+  resetIfJustCompleted(currentLang, decks[currentLang].verbs[order[idx]][0]);
   currentLang = lang;
   titleEl.textContent = decks[lang].title;
   order = decks[lang].verbs.map((_, i) => i);
-  idx = 0;
+  idx = progressData.lastIndex[lang] || 0;
   mode = 'front';
   quizState = null;
   document.getElementById('btnEs').classList.toggle('active', lang === 'es');
@@ -835,24 +1018,33 @@ function setLang(lang) {
   document.body.classList.toggle('lang-es', lang === 'es');
   document.body.classList.toggle('lang-sl', lang === 'sl');
   document.body.classList.toggle('lang-zh', lang === 'zh');
+  recordView(currentLang, decks[currentLang].verbs[order[idx]][0]);
+  saveLastPosition();
   render();
 }
 
 function next() {
+  resetIfJustCompleted(currentLang, decks[currentLang].verbs[order[idx]][0]);
   idx = (idx + 1) % decks[currentLang].verbs.length;
   mode = 'front';
   quizState = null;
+  recordView(currentLang, decks[currentLang].verbs[order[idx]][0]);
+  saveLastPosition();
   render();
 }
 
 function prev() {
+  resetIfJustCompleted(currentLang, decks[currentLang].verbs[order[idx]][0]);
   idx = (idx - 1 + decks[currentLang].verbs.length) % decks[currentLang].verbs.length;
   mode = 'front';
   quizState = null;
+  recordView(currentLang, decks[currentLang].verbs[order[idx]][0]);
+  saveLastPosition();
   render();
 }
 
 function shuffle() {
+  resetIfJustCompleted(currentLang, decks[currentLang].verbs[order[idx]][0]);
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [order[i], order[j]] = [order[j], order[i]];
@@ -860,6 +1052,8 @@ function shuffle() {
   idx = 0;
   mode = 'front';
   quizState = null;
+  recordView(currentLang, decks[currentLang].verbs[order[idx]][0]);
+  saveLastPosition();
   render();
 }
 
@@ -878,15 +1072,87 @@ quizBtn.addEventListener('click', () => { buildQuiz(); mode = 'quiz'; render(); 
 document.getElementById('nextBtn').addEventListener('click', next);
 document.getElementById('prevBtn').addEventListener('click', prev);
 document.getElementById('shuffleBtn').addEventListener('click', shuffle);
-document.getElementById('btnEs').addEventListener('click', () => setLang('es'));
-document.getElementById('btnSl').addEventListener('click', () => setLang('sl'));
-document.getElementById('btnZh').addEventListener('click', () => setLang('zh'));
+document.getElementById('btnEs').addEventListener('click', () => { viewMode = 'flashcards'; setLang('es'); toggleView(); });
+document.getElementById('btnSl').addEventListener('click', () => { viewMode = 'flashcards'; setLang('sl'); toggleView(); });
+document.getElementById('btnZh').addEventListener('click', () => { viewMode = 'flashcards'; setLang('zh'); toggleView(); });
+
+const flashcardViewEl = document.getElementById('flashcardView');
+const statsViewEl = document.getElementById('statsView');
+const statsTableWrap = document.getElementById('statsTableWrap');
+
+function toggleView() {
+  flashcardViewEl.style.display = viewMode === 'flashcards' ? '' : 'none';
+  statsViewEl.style.display = viewMode === 'stats' ? '' : 'none';
+  document.getElementById('btnStats').classList.toggle('active', viewMode === 'stats');
+  if (viewMode === 'flashcards') {
+    document.getElementById('btnEs').classList.toggle('active', currentLang === 'es');
+    document.getElementById('btnSl').classList.toggle('active', currentLang === 'sl');
+    document.getElementById('btnZh').classList.toggle('active', currentLang === 'zh');
+  } else {
+    document.getElementById('btnEs').classList.remove('active');
+    document.getElementById('btnSl').classList.remove('active');
+    document.getElementById('btnZh').classList.remove('active');
+  }
+}
+
+function renderStats() {
+  document.body.classList.toggle('lang-es', statsLang === 'es');
+  document.body.classList.toggle('lang-sl', statsLang === 'sl');
+  document.body.classList.toggle('lang-zh', statsLang === 'zh');
+  document.getElementById('statsBtnEs').classList.toggle('active', statsLang === 'es');
+  document.getElementById('statsBtnSl').classList.toggle('active', statsLang === 'sl');
+  document.getElementById('statsBtnZh').classList.toggle('active', statsLang === 'zh');
+
+  const deck = decks[statsLang];
+  const isZh = deck.hasPinyin;
+  const rows = deck.verbs.map(v => {
+    const entry = getEntry(statsLang, v[0]);
+    return { word: v[0], meaning: v[2], started: entry.views || 0, completed: entry.completedReviews || 0 };
+  });
+  rows.sort((a, b) => b.started - a.started);
+
+  const totalStarted = rows.reduce((s, r) => s + r.started, 0);
+  const totalCompleted = rows.reduce((s, r) => s + (r.completed > 0 ? 1 : 0), 0);
+
+  const headerHtml =
+    '<div class="stats-row stats-header">' +
+      '<span class="stats-rank">#</span>' +
+      '<span class="stats-word">Verb</span>' +
+      '<span class="stats-meaning">Meaning</span>' +
+      '<span class="stats-count">Started</span>' +
+      '<span class="stats-count-completed">Reviewed</span>' +
+    '</div>';
+
+  const rowsHtml = rows.map((r, i) => {
+    return '<div class="stats-row">' +
+      '<span class="stats-rank">' + (i + 1) + '</span>' +
+      '<span class="stats-word' + (isZh ? ' cjk' : '') + '">' + r.word + '</span>' +
+      '<span class="stats-meaning">' + r.meaning + '</span>' +
+      '<span class="stats-count">' + r.started + '</span>' +
+      '<span class="stats-count-completed' + (r.completed > 0 ? ' done' : '') + '">' + r.completed + '</span>' +
+    '</div>';
+  }).join('');
+
+  statsTableWrap.innerHTML =
+    '<p class="hint" style="margin:0 0 10px;">' + totalStarted + ' cards started &nbsp;·&nbsp; ' + totalCompleted + ' / ' + rows.length + ' fully reviewed</p>' +
+    '<div class="stats-table">' + headerHtml + rowsHtml + '</div>';
+}
+
+document.getElementById('btnStats').addEventListener('click', () => {
+  viewMode = 'stats';
+  toggleView();
+  renderStats();
+});
+document.getElementById('statsBtnEs').addEventListener('click', () => { statsLang = 'es'; renderStats(); });
+document.getElementById('statsBtnSl').addEventListener('click', () => { statsLang = 'sl'; renderStats(); });
+document.getElementById('statsBtnZh').addEventListener('click', () => { statsLang = 'zh'; renderStats(); });
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') next();
   if (e.key === 'ArrowLeft') prev();
 });
 
+recordView(currentLang, decks[currentLang].verbs[order[idx]][0]);
 render();
 </script>
 </body>
